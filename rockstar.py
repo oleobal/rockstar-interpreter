@@ -20,7 +20,7 @@ def preProcessLine(line):
 	line = re.sub(r"'s\W+", " is ", line)
 	line.replace("'", "")
 	# removing whitespace
-	line.strip()
+	line = line.strip()
 	
 	return line
 
