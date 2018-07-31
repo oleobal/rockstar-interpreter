@@ -15,9 +15,9 @@ def preProcessLine(line):
 	Formatting to be done line per line, purely on text
 	"""
 	# removing comments
-	re.sub(r"(.*)", "", line) # FIXME absolutely flawed regex ! That, or some lines are not being preprocessed
+	line = re.sub(r"\(.*\)", "", line)
 	# removing single quotes
-	re.sub(r"'s\W+", " is ", line)
+	line = re.sub(r"'s\W+", " is ", line)
 	line.replace("'", "")
 	# removing whitespace
 	line.strip()
