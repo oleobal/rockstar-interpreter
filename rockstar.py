@@ -12,13 +12,13 @@ def preProcessLine(line):
 	"""
 	Formatting to be done line per line, purely on text
 	"""
-	# removing whitespace
-	line.strip()
+	# removing comments
+	re.sub(r"(.*)", "", line) # FIXME absolutely flawed regex ! That, or some lines are not being preprocessed
 	# removing single quotes
 	re.sub(r"'s\W+", " is ", line)
 	line.replace("'", "")
-	# removing comments
-	re.sub(r"(.*)", "", line) # FIXME flawed regex
+	# removing whitespace
+	line.strip()
 	
 	return line
 
@@ -62,7 +62,7 @@ def tokenize(preProcessedLine):
 		except IndexError :
 			break
 			
-		#string literal
+		# string literal
 		if line[i] == "\"" :
 			i+=1
 			newToken["type"] = "string"
@@ -80,6 +80,8 @@ def tokenize(preProcessedLine):
 			while line[i] != " ":
 				newToken["value"]+=line[i]
 				i+=1
+			# this is actually not conform to the spec, which says all numbers should be DEC64
+			# not like anyone will ever care enough
 			try :
 				newToken["value"] =  int(newToken["value"])
 			except ValueError:
@@ -90,7 +92,19 @@ def tokenize(preProcessedLine):
 				raiseError(preProcessedLine, "Invalid numeric literal")
 			tokenTree.append(newToken)
 			continue
+	
+		# boolean literal
+		if nextWord in ("true", "right", "yes", "ok") :
+			tokenTree.append({"type":"boolean", "value":True})
+			i+=len(nextWord)
+			continue
+		if nextWord in ("false", "wrong", "no", "lies") : # what, no 'nope' ? 
+			tokenTree.append({"type":"boolean", "value":False})
+			i+=len(nextWord)
+			continue
 		
+		
+		# operations
 		
 		if nextWord in ("Say", "Shout", "Whisper", "Scream"):
 			tokenTree.append({"type":"operator", "value":"say"})
@@ -137,19 +151,21 @@ def tokenize(preProcessedLine):
 	
 	return tokenTree
 
-def typeOf(thing):
+def guessTypeOf(thing):
 	"""
-	Guess what the type of the thing is
+	Guess what the type of the thing (variable) is
 	"""
 	return "mysterious"
+	# TODO
 
 def evaluate(expression, context):
 	"""
 	returns a tuple: 
-	 ( what an expression evaluates to,
-	  its type )
+	 (what an expression evaluates to, its type)
 	types : "mysterious" (undefined), "null", "boolean", "number", "string", "object"
+	
 	:param expression: a tokenized tree (from tokenize())
+	:param context:
 	"""
 	
 	if type(expression) is list:
@@ -166,7 +182,7 @@ def evaluate(expression, context):
 	
 	else:
 		# Literals
-		if expression["type"] in ("string", "number")  :
+		if expression["type"] in ("string", "number", "boolean")  :
 			return (expression["value"], expression["type"])
 		
 		if expression["type"] == "variable" :
