@@ -4,6 +4,33 @@ import operator
 
 FLOW_CONTROL_OPS = ("If", "While", "Until")
 
+ARITHMETIC_OPS = {
+	'times' : 	'multiply',
+	'plus' : 	'add',
+	'minus' : 	'substract',
+	'over' : 	'divide'
+}
+
+class TokenType:
+	ARITHMETIC_OP = 'arithmetic_operator'
+	OP = 'operator'
+	VAR = 'variable'
+	LITERAL = 'literal'
+	NUMBER = 'number'
+	STRING = 'string'
+	NONE = 'none'
+
+arithmetic_operations = {
+	'add' : 		operator.add,
+	'multiply' : 	operator.mul,
+	'minus' : 		operator.sub,
+	'divide' : 		operator.truediv # or floordiv, like in C ?
+}
+
+def LOG(*args, sep=' '):
+	print(*args, sep=sep)
+	#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
+
 class InputProgramError(Exception):
 	pass
 
@@ -137,23 +164,8 @@ def tokenize(preProcessedLine):
 			continue
 
 		# arithmetic operators
-
-		ARITHMETIC_OPS = {
-			'times' : 	'multiply',
-			'plus' : 	'add',
-			'minus' : 	'substract',
-			'over' : 	'divide'
-		}
-
-		arithmetic_operations = {
-			'add' : 		operator.add,
-			'multiply' : 	operator.mul,
-			'minus' : 		operator.sub,
-			'divide' : 		operator.truediv # or floordiv, like in C ?
-		}
-
 		if nextWord in ARITHMETIC_OPS:
-			tokenTree.append({"type" : "AR_OP", "value" : ARITHMETIC_OPS[nextWord]})
+			tokenTree.append({"type" : TokenType.ARITHMETIC_OP, "value" : ARITHMETIC_OPS[nextWord]})
 			i += len(nextWord) + 1
 			continue
 
@@ -200,6 +212,10 @@ def evaluate(expression, context):
 	:param expression: a tokenized tree (from tokenize())
 	:param context:
 	"""
+
+	LOG('before', expression)
+
+	rexpr = None
 	
 	if type(expression) is list:
 		resultingExpr = []
@@ -208,26 +224,30 @@ def evaluate(expression, context):
 		# TODO compute expression here
 		# for now just special case
 		if len(resultingExpr) == 1:
-			return resultingExpr[0]
+			rexpr = resultingExpr[0]
 	
 	elif expression["type"] == "expression" :
-		return evaluate(expression["value"], context)	
+		rexpr = evaluate(expression["value"], context)
 	
 	# TODO poetic literals (in their own function ?)
 	
 	# TODO arithmetic, recursive expressions, etc
-	elif expression['type'] == 'AR_OP': # +plus, *times, -minus, /over
+	elif expression['type'] == TokenType.ARITHMETIC_OP: # +plus, *times, -minus, /over
 		pass
 	
 	# Literals
 	else:
 		if expression["type"] in ("string", "number", "boolean")  :
-			return (expression["value"], expression["type"])
+			rexpr = (expression["value"], expression["type"])
 		
 		if expression["type"] == "variable" :
-			return (context["variables"][expression["value"]]["value"], context["variables"][expression["value"]]["type"])
+			rexpr = (context["variables"][expression["value"]]["value"], context["variables"][expression["value"]]["type"])
 	
 		# todo other types (boolean)
+
+	LOG('after:', rexpr)
+	if rexpr is not None:
+		return rexpr
 	
 	return expression
 
@@ -236,6 +256,8 @@ def processInstruction(instruction, context):
 	Execute instruction
 	:param instruction: a tokenized tree
 	"""
+
+	LOG(instruction)
 
 	# I/O
 	
@@ -248,7 +270,7 @@ def processInstruction(instruction, context):
 		# it should go instruction : (0) put (1) expression (2) into (3) variable
 		v, t = evaluate(instruction[1], context)
 		context["variables"][instruction[3]["value"]] = {"value" : v, "type" : t}	
-
+		LOG('CONTEXT:', context)
 	# TODO
 	
 
