@@ -1,6 +1,8 @@
 import sys
 import re
 
+FLOW_CONTROL_OPS = ("If", "While", "Until")
+
 class InputProgramError(Exception):
 	pass
 
@@ -108,6 +110,15 @@ def tokenize(preProcessedLine):
 		
 		if nextWord in ("Say", "Shout", "Whisper", "Scream"):
 			tokenTree.append({"type":"operator", "value":"say"})
+			i+=len(nextWord)
+			continue
+		
+		
+		# flow control
+		
+		global FLOW_CONTROL_OPS
+		if nextWord in FLOW_CONTROL_OPS :
+			tokenTree.append({"type":"flow control", "value":nextWord})
 			i+=len(nextWord)
 			continue
 		
@@ -226,42 +237,19 @@ def processInstruction(instruction, context):
 
 
 
-def processTextBlock(line, fileobject, context):
+def processTextBlock(line, fileobject, context, isTopLevelBlock=False):
 	"""
 	An instruction is typically a single line, but multiline instruction (whiles..) exist and in this case we wait for the end of the block to execute it in its entirety. The obvious exception is the top level block
 	
 	:param line: first line of the block
-	:param fileobject: Current TextIOWrapper
-	:param context: The program context
+	:param fileobject: current TextIOWrapper
+	:param context: the program context
+	:param isTopLevelBlock: call with True, False is for recursion
 	"""
 	
-	isTopLevelBlock = False
-	block = {}
 	
+	while line != "" :
 	
-	firstInstruction = preProcessLine(line)
-	splitFirstInstruction = firstInstruction.split()
-	if splitFirstInstruction[0] == "If":
-		line = f.readline()
-		block["condition"] = firstInstruction
-		# TODO specific If code
-	elif splitFirstInstruction[0] == "While":
-		line = f.readline()
-		block["condition"] = firstInstruction
-		# TODO specific While code
-	elif splitFirstInstruction[0] == "Until":
-		line = f.readline()
-		block["condition"] = firstInstruction
-		# TODO specific Until code
-	else : # top level block
-		isTopLevelBlock = True
-	
-	
-	while line != "" : 
-		instruction = preProcessLine(line)
-		tokenizedInstruction = tokenize(instruction)
-		#print(instruction, tokenizedInstruction)
-		
 		# end of block
 		if line.strip() == "":
 			if isTopLevelBlock:
@@ -270,28 +258,34 @@ def processTextBlock(line, fileobject, context):
 			else:
 				break
 		
+		instruction = preProcessLine(line)
+		instruction = tokenize(instruction)
+		
+		
 		
 		# sub block
-		if tokenizedInstruction[0]["value"] in ["If", "While", "Until"]:
-			processTextBlock(instruction, f, context)
+		global FLOW_CONTROL_OPS
+		if instruction[0]["value"] in FLOW_CONTROL_OPS:
+			line = f.readline()
+			instruction += processTextBlock(line, f, context)
+		
 		
 		
 		# instruction
-		else :
-			processInstruction(tokenizedInstruction, context)
+		processInstruction(instruction, context)
 			
 			
 		line = f.readline()
-
-	# TODO actually execute the block once we get here
+	
+	return instruction
 
 context = {}
 context["variables"] = {}
 
 # reading input file from argument
 with open(sys.argv[1]) as f:
-	line = f.readline()
-	processTextBlock(line, f, context)
+	l = f.readline()
+	processTextBlock(l, f, context, isTopLevelBlock=True)
 
 
 
