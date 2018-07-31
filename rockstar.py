@@ -279,13 +279,14 @@ def processTextBlock(line, fileobject, context, isTopLevelBlock=False):
 	
 	return instruction
 
-context = {}
-context["variables"] = {}
+if __name__ == '__main__':
+	context = {}
+	context["variables"] = {}
 
-# reading input file from argument
-with open(sys.argv[1]) as f:
-	l = f.readline()
-	processTextBlock(l, f, context, isTopLevelBlock=True)
+	# reading input file from argument
+	with open(sys.argv[1]) as f:
+		l = f.readline()
+		processTextBlock(l, f, context, isTopLevelBlock=True)
 
 
 
