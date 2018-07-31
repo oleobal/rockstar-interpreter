@@ -1,5 +1,6 @@
 import sys
 import re
+import operator
 
 FLOW_CONTROL_OPS = ("If", "While", "Until")
 
@@ -134,7 +135,28 @@ def tokenize(preProcessedLine):
 			tokenTree.append({"type":"operator", "value":"assignment into"})
 			i=assignEndIndex+4
 			continue
-		
+
+		# arithmetic operators
+
+		ARITHMETIC_OPS = {
+			'times' : 	'multiply',
+			'plus' : 	'add',
+			'minus' : 	'substract',
+			'over' : 	'divide'
+		}
+
+		arithmetic_operations = {
+			'add' : 		operator.add,
+			'multiply' : 	operator.mul,
+			'minus' : 		operator.sub,
+			'divide' : 		operator.truediv # or floordiv, like in C ?
+		}
+
+		if nextWord in ARITHMETIC_OPS:
+			tokenTree.append({"type" : "AR_OP", "value" : ARITHMETIC_OPS[nextWord]})
+			i += len(nextWord) + 1
+			continue
+
 		# TODO poetic assignment
 		
 		# in this shitty language, is can either be initialisation or comparison
@@ -189,10 +211,16 @@ def evaluate(expression, context):
 			return resultingExpr[0]
 	
 	elif expression["type"] == "expression" :
-		return evaluate(expression["value"], context)
+		return evaluate(expression["value"], context)	
 	
+	# TODO poetic literals (in their own function ?)
+	
+	# TODO arithmetic, recursive expressions, etc
+	elif expression['type'] == 'AR_OP': # +plus, *times, -minus, /over
+		pass
+	
+	# Literals
 	else:
-		# Literals
 		if expression["type"] in ("string", "number", "boolean")  :
 			return (expression["value"], expression["type"])
 		
@@ -200,13 +228,6 @@ def evaluate(expression, context):
 			return (context["variables"][expression["value"]]["value"], context["variables"][expression["value"]]["type"])
 	
 		# todo other types (boolean)
-	
-	
-	# TODO poetic literals (in their own function ?)
-	
-	# TODO arithmetic, recursive expressions, etc
-	
-	
 	
 	return expression
 
@@ -216,7 +237,6 @@ def processInstruction(instruction, context):
 	:param instruction: a tokenized tree
 	"""
 
-	
 	# I/O
 	
 	if instruction[0]["value"] == "say" :
@@ -227,10 +247,7 @@ def processInstruction(instruction, context):
 	if instruction[0]["value"] == "assignment put" :
 		# it should go instruction : (0) put (1) expression (2) into (3) variable
 		v, t = evaluate(instruction[1], context)
-		context["variables"][instruction[3]["value"]] = {}
-		context["variables"][instruction[3]["value"]]["value"] = v
-		context["variables"][instruction[3]["value"]]["type"] = t
-	
+		context["variables"][instruction[3]["value"]] = {"value" : v, "type" : t}	
 
 	# TODO
 	
@@ -260,8 +277,6 @@ def processTextBlock(line, fileobject, context, isTopLevelBlock=False):
 		
 		instruction = preProcessLine(line)
 		instruction = tokenize(instruction)
-		
-		
 		
 		# sub block
 		global FLOW_CONTROL_OPS
