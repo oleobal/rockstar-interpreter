@@ -28,7 +28,7 @@ arithmetic_operations = {
 }
 
 def LOG(*args, sep=' '):
-	print(*args, sep=sep)
+	pass#print(*args, sep=sep)
 	#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
 
 class InputProgramError(Exception):
@@ -276,23 +276,28 @@ def processInstruction(instruction, context):
 
 
 
-def processTextBlock(line, fileobject, context, isTopLevelBlock=False):
+def processTextBlock(line, iterator, context, isTopLevelBlock=False):
 	"""
 	An instruction is typically a single line, but multiline instruction (whiles..) exist and in this case we wait for the end of the block to execute it in its entirety. The obvious exception is the top level block
 	
 	:param line: first line of the block
-	:param fileobject: current TextIOWrapper
+	:param iterator: the line iterator over the input code
 	:param context: the program context
 	:param isTopLevelBlock: call with True, False is for recursion
 	"""
-	
+
+	instruction = None
+
+	# discard trailing empty lines
+	while not line:
+		line = next(iterator, "")
 	
 	while line != "" :
 	
 		# end of block
 		if line.strip() == "":
 			if isTopLevelBlock:
-				line = f.readline()
+				line = next(iterator, "")
 				continue
 			else:
 				break
@@ -303,16 +308,13 @@ def processTextBlock(line, fileobject, context, isTopLevelBlock=False):
 		# sub block
 		global FLOW_CONTROL_OPS
 		if instruction[0]["value"] in FLOW_CONTROL_OPS:
-			line = f.readline()
-			instruction += processTextBlock(line, f, context)
-		
-		
+			line = next(iterator, "")
+			instruction += processTextBlock(line, iterator, context)
 		
 		# instruction
 		processInstruction(instruction, context)
 			
-			
-		line = f.readline()
+		line = next(iterator, "")
 	
 	return instruction
 
@@ -322,11 +324,7 @@ if __name__ == '__main__':
 
 	# reading input file from argument
 	with open(sys.argv[1]) as f:
-		l = f.readline()
-		processTextBlock(l, f, context, isTopLevelBlock=True)
-
-
-
+		processTextBlock(f.readline(), f, context, isTopLevelBlock=True)
 
 
 class Variable :
