@@ -12,7 +12,7 @@ ARITHMETIC_OPS = {
 }
 
 class TokenType:
-	ARITHMETIC_OP = 'arithmetic_operator'
+	ARITHMETIC_OP = 'arithmetic operator'
 	OP = 'operator'
 	VAR = 'variable'
 	LITERAL = 'literal'
@@ -27,15 +27,21 @@ arithmetic_operations = {
 	'divide' : 		operator.truediv # or floordiv, like in C ?
 }
 
-def LOG(*args, sep=' '):
-	print(*args, sep=sep)
-	#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
+
+
+
+class Variable :
+	def __init__(self, name, type='mysterious'):
+		self.name = name
+		self.setType(type)
+
 
 class InputProgramError(Exception):
 	pass
 
 def raiseError(line, text):
 	raise InputProgramError("Line : "+str(line)+"\nError : "+str(text))
+
 
 
 def preProcessLine(line):
@@ -166,7 +172,7 @@ def tokenize(preProcessedLine):
 		# arithmetic operators
 		if nextWord in ARITHMETIC_OPS:
 			tokenTree.append({"type" : TokenType.ARITHMETIC_OP, "value" : ARITHMETIC_OPS[nextWord]})
-			i += len(nextWord) + 1
+			i += len(nextWord)
 			continue
 
 		# TODO poetic assignment
@@ -204,6 +210,7 @@ def guessTypeOf(thing):
 	# TODO
 
 def evaluate(expression, context):
+	# FIXME maybe evaluate should return an expression instead ? Not sure
 	"""
 	returns a tuple: 
 	 (what an expression evaluates to, its type)
@@ -217,14 +224,33 @@ def evaluate(expression, context):
 
 	rexpr = None
 	
-	if type(expression) is list:
+	
+	if type(expression) is tuple :
+		rexpr = expression
+	
+	elif type(expression) is list:
 		resultingExpr = []
 		for item in expression :
 			resultingExpr.append(evaluate(item, context))
-		# TODO compute expression here
+		
 		# for now just special case
+		
 		if len(resultingExpr) == 1:
 			rexpr = resultingExpr[0]
+			
+			
+		# arithmetic
+		
+		# Right associative operators
+		
+		elif resultingExpr[1]["type"] == TokenType.ARITHMETIC_OP and ( resultingExpr[1]["value"] == "add" or resultingExpr[1]["value"] == "multiply" ) :
+			if resultingExpr[1]["value"] == "add" :
+				left = resultingExpr[0]
+				right = evaluate(resultingExpr[2:],context)
+				if left[1] == right[1]:
+					rexpr = (left[0] + right[0], left[1])
+				
+				
 	
 	elif expression["type"] == "expression" :
 		rexpr = evaluate(expression["value"], context)
@@ -232,8 +258,8 @@ def evaluate(expression, context):
 	# TODO poetic literals (in their own function ?)
 	
 	# TODO arithmetic, recursive expressions, etc
-	elif expression['type'] == TokenType.ARITHMETIC_OP: # +plus, *times, -minus, /over
-		pass
+	#elif expression['type'] == TokenType.ARITHMETIC_OP: # +plus, *times, -minus, /over
+	#	pass
 	
 	# Literals
 	else:
@@ -289,6 +315,7 @@ def processTextBlock(line, fileobject, context, isTopLevelBlock=False):
 	
 	while line != "" :
 	
+		line = preProcessLine(line)
 		# end of block
 		if line.strip() == "":
 			if isTopLevelBlock:
@@ -297,8 +324,7 @@ def processTextBlock(line, fileobject, context, isTopLevelBlock=False):
 			else:
 				break
 		
-		instruction = preProcessLine(line)
-		instruction = tokenize(instruction)
+		instruction = tokenize(line)
 		
 		# sub block
 		global FLOW_CONTROL_OPS
@@ -320,17 +346,19 @@ if __name__ == '__main__':
 	context = {}
 	context["variables"] = {}
 
+	if "--log" in sys.argv :
+		def LOG(*args, sep=' '):
+			print(*args, sep=sep,file=sys.stderr)
+			#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
+		sys.argv.remove("--log")
+		
+	else :
+		def LOG(*args, sep=' '):
+			pass
+	
 	# reading input file from argument
 	with open(sys.argv[1]) as f:
 		l = f.readline()
 		processTextBlock(l, f, context, isTopLevelBlock=True)
 
-
-
-
-
-class Variable :
-	def __init__(self, name, type='mysterious'):
-		self.name = name
-		self.setType(type)
 	
