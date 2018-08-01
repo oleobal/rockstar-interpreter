@@ -233,8 +233,8 @@ def evaluate(expression, context):
 			#if resultingExpr[1]["value"] == "ADD" :
 			left = resultingExpr[0]
 			right = evaluate(resultingExpr[2:],context)
-			if left[1] == right[1] and (left[1] in ("string", "number")):
-				rexpr = (arithmetic_operations[resultingExpr[1]['value']](left[0], right[0]), left[1])
+			#if left[1] == right[1] and (left[1] in ("string", "number")):
+			rexpr = (arithmetic_operations[resultingExpr[1]['value']](left[0], right[0]), left[1])
 				
 				
 	
