@@ -1,6 +1,7 @@
 import sys
 import re
 import argparse
+import pdb
 
 VERBOSE = 0
 
@@ -83,22 +84,23 @@ def tokenize(preProcessedLine):
 				i+=1
 			tokenTree.append(newToken)
 			continue
-	
+
 		# numeric literal
 		if line[i] in ("0","1","2","3","4","5","6","7","8","9") :
 			newToken["type"] = "number"
 			newToken["value"] = ""
-			while line[i] != " ":
+
+			while i < len(line) and line[i]:
 				newToken["value"]+=line[i]
 				i+=1
 			# this is actually not conform to the spec, which says all numbers should be DEC64
 			# not like anyone will ever care enough
 			try :
-				newToken["value"] =  int(newToken["value"])
+				newToken["value"] = int(newToken["value"])
 			except ValueError:
 				pass
 			try:
-				newToken["value"] =  float(newToken["value"])
+				newToken["value"] = float(newToken["value"])
 			except ValueError:
 				raiseError(preProcessedLine, "Invalid numeric literal")
 			tokenTree.append(newToken)
@@ -227,12 +229,12 @@ def evaluate(expression, context):
 		# Right associative operators
 		
 		# FIXME
-		elif resultingExpr[1]["type"] == TokenType.ARITHMETIC_OP and ( resultingExpr[1]["value"] == "add" or resultingExpr[1]["value"] == "multiply" ) :
-			if resultingExpr[1]["value"] == "add" :
-				left = resultingExpr[0]
-				right = evaluate(resultingExpr[2:],context)
-				if left[1] == right[1] and (left[1] in ("string", "number")):
-					rexpr = (left[0] + right[0], left[1])
+		elif resultingExpr[1]["type"] == TokenType.ARITHMETIC_OP: # and ( resultingExpr[1]["value"] == "ADD" or resultingExpr[1]["value"] == "MUL" ) :
+			#if resultingExpr[1]["value"] == "ADD" :
+			left = resultingExpr[0]
+			right = evaluate(resultingExpr[2:],context)
+			if left[1] == right[1] and (left[1] in ("string", "number")):
+				rexpr = (arithmetic_operations[resultingExpr[1]['value']](left[0], right[0]), left[1])
 				
 				
 	
