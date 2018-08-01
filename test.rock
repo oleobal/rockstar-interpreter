@@ -2,7 +2,7 @@
 Put "meaning" into my love 
 Put my love plus " your love" into your heart
 Shout your heart (Oh oh oh)
-
+(Rockstar does not define string operations)
 
 (Numbers)
 Put 3.14 into your thoughts
@@ -12,8 +12,14 @@ Shout the world
 
 (Booleans)
 Put right into the truth
-Put the truth into your heart
-Put the truth plus your heart into my soul
+Put the truth into your heart (overwriting your heart)
 Scream your heart
-Put lies into the truth
-Say the truth
+(Rockstar does not define boolean operations)
+(And Python just casts them to ints, so let's not do that)
+
+
+(Pronouns)
+Put "Jojo" into my television
+Put it into the fridge
+Put it into the house
+Whisper the house

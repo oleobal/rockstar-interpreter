@@ -198,7 +198,15 @@ def tokenize(preProcessedLine):
 			tokenTree.append(newToken)
 			i+=len(nextWord)
 			continue
-	
+		
+		# pronouns
+		# Making fun of SJWs is fun, right ? right ? right ? Should I put more inclusive pronouns in guys ? SJWs are so dumb right ?
+		if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them", "ze", "hir", "zie", "zir", "xe", "xem", "ve", "ver"):
+			tokenTree.append({"type":"pronoun", "value":"doesn't matter"})
+			i+=len(nextWord)
+			continue
+		
+		
 	return tokenTree
 
 def guessTypeOf(thing):
@@ -242,11 +250,12 @@ def evaluate(expression, context):
 		
 		# Right associative operators
 		
+		# FIXME
 		elif resultingExpr[1]["type"] == TokenType.ARITHMETIC_OP and ( resultingExpr[1]["value"] == "add" or resultingExpr[1]["value"] == "multiply" ) :
 			if resultingExpr[1]["value"] == "add" :
 				left = resultingExpr[0]
 				right = evaluate(resultingExpr[2:],context)
-				if left[1] == right[1]:
+				if left[1] == right[1] and (left[1] in ("string", "number")):
 					rexpr = (left[0] + right[0], left[1])
 				
 				
@@ -260,15 +269,24 @@ def evaluate(expression, context):
 	#elif expression['type'] == TokenType.ARITHMETIC_OP: # +plus, *times, -minus, /over
 	#	pass
 	
-	# Literals
+	
 	else:
+		# Literals
 		if expression["type"] in ("string", "number", "boolean")  :
 			rexpr = (expression["value"], expression["type"])
 		
+		
+		
 		if expression["type"] == "variable" :
 			rexpr = (context["variables"][expression["value"]]["value"], context["variables"][expression["value"]]["type"])
-	
-		# todo other types (boolean)
+			context["last named variable"] = expression["value"]
+			
+		if expression["type"] == "pronoun" :
+			if context["last named variable"] == None:
+				raiseError(expression, "Pronoun referring to nothing")
+			else :
+				var = context["variables"][context["last named variable"]]
+				rexpr = (var["value"], var["type"])
 
 	LOG('after:', rexpr)
 	if rexpr is not None:
@@ -295,6 +313,7 @@ def processInstruction(instruction, context):
 		# it should go instruction : (0) put (1) expression (2) into (3) variable
 		v, t = evaluate(instruction[1], context)
 		context["variables"][instruction[3]["value"]] = {"value" : v, "type" : t}	
+		context["last named variable"] = instruction[3]["value"]
 		LOG('CONTEXT:', context)
 	# TODO
 	
@@ -356,6 +375,7 @@ if __name__ == '__main__':
 
 	context = {}
 	context["variables"] = {}
+	context["last named variable"] = None
 
 	
 	# reading input file from argument

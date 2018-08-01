@@ -17,6 +17,14 @@ Each line is fed to the `tokenize` function, which returns a crude AST. Then, it
 
 If it is a multiline instruction (block), we block (ha) after the tokenization, growing the AST until we reached root level again, at which point the AST is executed. *(not yet implemented)*
 
+
+### Venues for improvement
+
+We are trying to get feature complete as fast as possible, and then solve the issues uncovered along the way.
+
+ - Error handling is poor, we should instead throw errors and handle them at the top level which would enable us to display line levels
+ - Last named variable (for pronouns) is currently handled manually but a good way would be to have context be a "smart" object updating this field whenever a variable is requested of it (alternatively, make the tokenizer context-aware for this, and replace it on tokenization ?)
+
 ### License
 
 This program is free software: you can redistribute it and/or modify
