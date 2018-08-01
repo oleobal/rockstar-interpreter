@@ -1,6 +1,9 @@
 import sys
 import re
 import operator
+import argparse
+
+VERBOSE = 0
 
 FLOW_CONTROL_OPS = ("If", "While", "Until")
 
@@ -28,7 +31,8 @@ arithmetic_operations = {
 }
 
 def LOG(*args, sep=' '):
-	pass#print(*args, sep=sep)
+	if VERBOSE:
+		print(*args, sep=sep)
 	#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
 
 class InputProgramError(Exception):
@@ -288,8 +292,9 @@ def processTextBlock(line, iterator, context, isTopLevelBlock=False):
 
 	instruction = None
 
-	# discard trailing empty lines
-	while not line:
+	# discard leading empty lines
+	# I had this problem while processing text
+	while not line.strip():
 		line = next(iterator, "")
 	
 	while line != "" :
@@ -319,11 +324,20 @@ def processTextBlock(line, iterator, context, isTopLevelBlock=False):
 	return instruction
 
 if __name__ == '__main__':
+
+	argparser = argparse.ArgumentParser()
+	argparser.add_argument('filepath', help='path to the file to interpret')
+	argparser.add_argument('-v', '--verbose', action='store_true', help='show detailed debug messages')
+	
+	args = argparser.parse_args()
+	
+	VERBOSE = args.verbose
+
 	context = {}
 	context["variables"] = {}
 
 	# reading input file from argument
-	with open(sys.argv[1]) as f:
+	with open(args.filepath) as f:
 		processTextBlock(f.readline(), f, context, isTopLevelBlock=True)
 
 
