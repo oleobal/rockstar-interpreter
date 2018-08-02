@@ -1,5 +1,6 @@
 import sys
-import readline as rd
+import readline
+import traceback
 
 import rockstar as rk
 
@@ -44,10 +45,12 @@ def run_shell():
             continue
 
         # process line
-        ans = rk.preProcessLine(user_input)
-        if ans:
-            ans = rk.processInstruction(rk.tokenize(ans), context)
-            #print(ans)
+        try:
+            ans = rk.preProcessLine(user_input)
+            if ans:
+                ans = rk.processInstruction(rk.tokenize(ans), context)
+        except Exception as e:
+            traceback.print_exc()
 
 if '__main__' == __name__:
     run_shell()
