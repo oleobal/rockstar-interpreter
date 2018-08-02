@@ -26,6 +26,18 @@ def run_shell():
             break
         user_input = raw_input.strip()
 
+        if not user_input:
+            continue
+
+        # load file
+        if user_input[0] == '<':
+            try:
+                with open(user_input[1:].strip()) as file:
+                    rk.processTextBlock(file.readline(), file, context, isTopLevelBlock=True)
+            except FileNotFoundError as e:
+                print(e)
+            continue
+
         # special instructions
         if user_input.lower() == 'exit':
             break
@@ -34,8 +46,17 @@ def run_shell():
             print(context)
             continue
 
+        # display vars
         if user_input.lower() == 'vars':
-            print(*context['variables'].items(), sep='\n')
+            if context['variables']:
+                ff = '%-20s' * 3
+                print(ff % ('NAME', 'TYPE', 'VALUE'))
+                print(*list(map(lambda item : ff % (item[0], item[1]['type'], item[1]['value']), context['variables'].items())), sep='\n')
+            continue
+
+        # clear context
+        if user_input.lower() == 'clear':
+            context = {'variables' : {}}
             continue
 
         # check context naming
