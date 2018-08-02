@@ -29,6 +29,16 @@ def preProcessLine(line):
 	# removing single quotes
 	line = re.sub(r"'s\W+", " is ", line)
 	line.replace("'", "")
+	# removing non alphabetical characters (save for . " and numbers)
+	line = re.sub(r"[^a-zA-Z0-9.\" ]+", "", line)
+	# FIXME this is actually wrong because we'll also be removing them from string literals
+	# and it's not as simple as avoiding what is inside "", because of poetic string literals
+	# and also poetic things can contain keywords
+	# so basically we have to parse just to remove unwanted characters
+	# aint that great
+	
+	# TODO fold multiple consecutive spaces into a single one ?
+	
 	# removing whitespace
 	line = line.strip()
 	
@@ -152,14 +162,55 @@ def tokenize(preProcessedLine):
 			i += len(nextWord)
 			continue
 
-		# TODO poetic assignment
+		# poetic assignment
 		
 		# in this shitty language, is can either be initialisation or comparison
 		# TODO comparison is
-		if nextWord.lower() in ("is", "was", "were") :
+		if nextWord in ("is", "was", "were") :
 			if tokenTree[-1]["type"] == "variable" :
 				tokenTree.append({"type":"operator", "value":"poetic assignment"})
-				
+				i+=len(nextWord)+1
+				nextWord = getNextWord(line,i)
+				# poetic type literal
+				if nextWord in ("true", "right", "yes", "ok"):
+					tokenTree.append({"type":"boolean", "value":True})
+				elif nextWord in ("false", "wrong", "no", "lies"):
+					tokenTree.append({"type":"boolean", "value":False})
+				elif nextWord in ("null", "nobody", "nowhere", "empty", "gone") :
+					tokenTree.append({"type":"null", "value":None})
+				else:
+					# poetic number literal
+					numVal = ""
+					while i<len(line):
+						if "." in nextWord :
+							z = nextWord.split(".")
+							numVal+=str(len(z[0])%10)
+							numVal+="."
+							numVal+=str(len(z[1])%10)
+						else :
+							numVal+=str(len(nextWord)%10)
+						i+=len(nextWord)+1
+						nextWord = getNextWord(line,i)
+					
+					try:
+						num = int(numVal)
+					except ValueError:
+						pass
+					try:
+						num = float(numVal)
+					except ValueError :
+						raiseError(line, "Invalid poetic literal")
+					tokenTree.append({"type":"number", "value":num})
+					i+=len(nextWord)
+					
+		if nextWord == "says" :
+			if tokenTree[-1]["type"] == "variable" :
+				tokenTree.append({"type":"operator", "value":"poetic assignment"})
+				i+=len(nextWord)+1
+				tokenTree.append({"type":"string", "value":line[i:]})
+				i=len(line)
+			else:
+				raiseError(line, "Invalid poetic string assignment")
 		
 		# TODO treat all keywords before variables so the only thing left is variables
 		
@@ -179,7 +230,11 @@ def tokenize(preProcessedLine):
 		
 		# pronouns
 		# Making fun of SJWs is fun, right ? right ? right ? Should I put more inclusive pronouns in guys ? SJWs are so dumb right ?
-		if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them", "ze", "hir", "zie", "zir", "xe", "xem", "ve", "ver"):
+		# Actually, fuck the spec. Fuck these jokes. Fuck people who think humour is just references marking your
+		# belonging to a group. Fuck pervasive conservatism. Fuck militant apathy. Fuck Dylan Beattie.
+		# If you want your program that uses those to compile, then edit this yourself.
+		#if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them", "ze", "hir", "zie", "zir", "xe", "xem", "ve", "ver"):
+		if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them"):
 			tokenTree.append({"type":"pronoun", "value":"doesn't matter"})
 			i+=len(nextWord)
 			continue
@@ -241,8 +296,7 @@ def evaluate(expression, context):
 	elif expression["type"] == "expression" :
 		rexpr = evaluate(expression["value"], context)
 	
-	# TODO poetic literals (in their own function ?)
-	
+
 	# TODO arithmetic, recursive expressions, etc
 	#elif expression['type'] == TokenType.ARITHMETIC_OP: # +plus, *times, -minus, /over
 	#	pass
@@ -295,7 +349,12 @@ def processInstruction(instruction, context):
 		LOG('CONTEXT:', context)
 	# TODO
 	
-
+	# Poetic assignment
+	if instruction[0]["type"] == "variable" and instruction[1]["value"] == "poetic assignment" :
+		context["variables"][instruction[0]["value"]] = {"type" : instruction[2]["type"], "value":instruction[2]["value"]}
+		context["last named variable"] = instruction[0]["value"]
+		# already handled in the tokenizer
+		
 
 
 def processTextBlock(line, iterator, context, isTopLevelBlock=False):
