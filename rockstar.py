@@ -64,6 +64,29 @@ def getNextWord(text, index):
 			break
 	
 	return result
+
+def getNextVariable(line, index):
+	"""
+	Utility function
+	If there is a variable at <index> in <line>, it returns it (in dict form), along with the new index
+	else, it returns None and the same index
+	"""
+	nextWord = getNextWord(line, index)
+	
+	# common variables
+	if nextWord.lower() in ("a", "an", "the", "my", "your") :
+		varName = nextWord.lower()+" "
+		index+=len(nextWord)+1
+		nextWord = getNextWord(line,index)
+		if nextWord.lower() != nextWord :
+			raiseError(line, "Invalid common variable name")
+		varName += nextWord
+		index+=len(nextWord)
+		return ({"type":"variable", "value":varName}, index)
+		
+	# TODO proper variables
+	
+	return None, index
 	
 def tokenize(preProcessedLine):
 	"""
@@ -142,7 +165,35 @@ def tokenize(preProcessedLine):
 		global FLOW_CONTROL_OPS
 		if nextWord in FLOW_CONTROL_OPS :
 			tokenTree.append({"type":"flow control", "value":nextWord})
-			i+=len(nextWord)
+			i+=len(nextWord)+1
+			
+			var, ind = getNextVariable(line, i)
+			if var == None:
+				raiseError(line, "Invalid flow control")
+			tokenTree.append(var)
+			i=ind+1
+			
+			nextWord = getNextWord(line, i)
+			
+			# comparison is
+			if nextWord == "is" :
+				i+=3
+				nextWord = getNextWord(line,i)
+				if nextWord == "not" :
+					tokenTree.append({"type":"comparator","value":"NE"})
+					i+=4
+					nextWord = getNextWord(line,i)
+				else :
+					tokenTree.append({"type":"comparator","value":"EQ"})
+			elif nextWord == "aint" :
+				tokenTree.append({"type":"comparator","value":"NE"})
+				i+=5
+				nextWord = getNextWord(line,i)
+			
+			tokenTree.append(tokenize(line[i:]))
+			
+			# TODO other comparisons
+			
 			continue
 		
 		# assignment
@@ -167,7 +218,6 @@ def tokenize(preProcessedLine):
 		# poetic assignment
 		
 		# in this shitty language, is can either be initialisation or comparison
-		# TODO comparison is
 		if nextWord in ("is", "was", "were") :
 			if tokenTree[-1]["type"] == "variable" :
 				tokenTree.append({"type":"operator", "value":"poetic assignment"})
@@ -204,6 +254,7 @@ def tokenize(preProcessedLine):
 						raiseError(line, "Invalid poetic literal")
 					tokenTree.append({"type":"number", "value":num})
 					i+=len(nextWord)
+					continue
 					
 		if nextWord == "says" :
 			if tokenTree[-1]["type"] == "variable" :
@@ -218,17 +269,14 @@ def tokenize(preProcessedLine):
 		
 		# common variable
 		
-		if nextWord.lower() in ("a", "an", "the", "my", "your") :
-			newToken["type"] = "variable"
-			newToken["value"] = nextWord.lower()+" "
-			i+=len(nextWord)+1
-			nextWord = getNextWord(line,i)
-			if nextWord.lower() != nextWord :
-				raiseError(line, "Invalid common variable name")
-			newToken["value"] += nextWord
-			tokenTree.append(newToken)
-			i+=len(nextWord)
-			continue
+		
+		
+		var, ind = getNextVariable(line, i)
+		if var != None:
+			tokenTree.append(var)
+			i=ind
+		
+		
 		
 		# pronouns
 		# Making fun of SJWs is fun, right ? right ? right ? Should I put more inclusive pronouns in guys ? SJWs are so dumb right ?
@@ -392,6 +440,7 @@ def processTextBlock(line, iterator, context, isTopLevelBlock=False):
 		if instruction[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
 			instruction += processTextBlock(line, iterator, context)
+		
 		
 		# instruction
 		processInstruction(instruction, context)
