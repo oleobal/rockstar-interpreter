@@ -1,5 +1,8 @@
 import sys
-import readline
+try:
+    import readline
+except:
+    pass
 import traceback
 
 import rockstar as rk
