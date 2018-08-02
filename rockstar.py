@@ -3,9 +3,11 @@ import re
 import argparse
 import pdb
 
-VERBOSE = 0
 
 from rkop import *
+import rkshell
+
+VERBOSE = 0
 
 def LOG(*args, sep=' '):
 	if VERBOSE:
@@ -30,7 +32,7 @@ def preProcessLine(line):
 	line = re.sub(r"'s\W+", " is ", line)
 	line.replace("'", "")
 	# removing non alphabetical characters (save for . " and numbers)
-	line = re.sub(r"[^a-zA-Z0-9.\" ]+", "", line)
+	# line = re.sub(r"[^a-zA-Z0-9.\" ]+", "", line)
 	# FIXME this is actually wrong because we'll also be removing them from string literals
 	# and it's not as simple as avoiding what is inside "", because of poetic string literals
 	# and also poetic things can contain keywords
@@ -283,12 +285,10 @@ def evaluate(expression, context):
 		
 		# Right associative operators
 		
-		# FIXME
-		elif resultingExpr[1]["type"] == TokenType.ARITHMETIC_OP: # and ( resultingExpr[1]["value"] == "ADD" or resultingExpr[1]["value"] == "MUL" ) :
-			#if resultingExpr[1]["value"] == "ADD" :
+		elif resultingExpr[1]["type"] == TokenType.ARITHMETIC_OP:
+			# assuming it's a binary operator
 			left = resultingExpr[0]
 			right = evaluate(resultingExpr[2:],context)
-			#if left[1] == right[1] and (left[1] in ("string", "number")):
 			rexpr = (arithmetic_operations[resultingExpr[1]['value']](left[0], right[0]), left[1])
 				
 				
@@ -403,7 +403,7 @@ def processTextBlock(line, iterator, context, isTopLevelBlock=False):
 if __name__ == '__main__':
 
 	argparser = argparse.ArgumentParser()
-	argparser.add_argument('filepath', help='path to the file to interpret')
+	argparser.add_argument('filepath', nargs='?', help='path to the file to interpret')
 	argparser.add_argument('-v', '--verbose', action='store_true', help='show detailed debug messages')
 	
 	args = argparser.parse_args()
@@ -414,9 +414,11 @@ if __name__ == '__main__':
 	context["variables"] = {}
 	context["last named variable"] = None
 
-	
-	# reading input file from argument
-	with open(args.filepath) as f:
-		processTextBlock(f.readline(), f, context, isTopLevelBlock=True)
+	if args.filepath:
+		# reading input file from argument
+		with open(args.filepath) as f:
+			processTextBlock(f.readline(), f, context, isTopLevelBlock=True)
 
-	
+	else:
+		# fire up the rockstar shell
+		rkshell.run_shell()
