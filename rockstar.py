@@ -2,6 +2,7 @@ import sys
 import re
 import argparse
 import pdb
+from pprint import pprint as pprint
 
 
 from rkop import *
@@ -191,6 +192,7 @@ def tokenize(preProcessedLine):
 				nextWord = getNextWord(line,i)
 			
 			tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
+			i=len(line)
 			
 			# TODO other comparisons
 			

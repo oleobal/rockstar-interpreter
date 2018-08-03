@@ -7,7 +7,7 @@ If my heart aint wrong
 Whisper "Let's spend some time together"
 
 ("My age is 64" results in my age = 2 because of string poetic literals)
-(bug ?)
+(it is according to spec though)
 
 Put 64 into my age
 Put 16 into your age
