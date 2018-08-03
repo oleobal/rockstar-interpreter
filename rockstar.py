@@ -2,7 +2,7 @@ import sys
 import re
 import argparse
 import pdb
-
+import pprint
 
 from rkop import *
 import rkshell
@@ -20,7 +20,123 @@ class InputProgramError(Exception):
 def raiseError(line, text):
 	raise InputProgramError("Line : "+str(line)+"\nError : "+str(text))
 
+def parseBooleanExpression(line, i):
 
+	# 2. recognize operator
+	# 2.5. recognize negation
+
+	# 1. capture first variable
+	var1, ind = getNextVariable(line, i)
+	if var1 == None:
+		raiseError(line, "Invalid flow control")
+
+	i = ind + 1
+
+	# 2. identify operator
+	# notes :
+	# - always begins by is + optional negation
+	# then either 'as X as' or 'X than'
+	tokens = []
+	words = line[i:].split()
+	is_nature = []
+	it = 0
+	while it < len(words):
+
+		nextWord = words[it].lower()
+
+		if nextWord in ['is', 'are', 'were']:
+			is_nature.append('is')
+			LOG('IS')
+		
+		elif nextWord in ['aint', 'wasnt', 'werent']:
+			is_nature.append('is not')
+			LOG('IS NOT')
+
+		elif nextWord in ['not', 'no']:
+			is_nature.append('not')
+			LOG('NOT')
+
+		# as X as
+		elif nextWord == 'as':
+			
+			if it + 2 >= len(words):
+				raiseError(line, 'Invalid conditional expression')
+			
+			name = ' '.join(nextWord, *words[it:it+2])
+
+			op = CONDITIONAL_OPS.get(name, None)
+
+			if not op:
+				raiseError(name, 'Invalid conditional operator')
+			
+			LOG('identified boolean op :', op, 'from', line, 'at', it)
+			
+			tokens.append({'type' :TokenType.BOOLEAN_OP, 'value' : op})
+			
+			it += 2
+
+			# found operator, we can bail out
+			break
+
+		# X than
+		else:
+			# look back
+			if it + 1 >= len(words) or words[it + 1] != 'than':
+				break
+
+			name = nextWord + ' ' + words[it + 1]
+
+			op = CONDITIONAL_OPS.get(name, None)
+
+			if not op:
+				raiseError(name, 'Invalid conditional operator')
+			
+			LOG('identified boolean op :', op, 'from', line, 'at', it)
+			
+			tokens.append({'type' :TokenType.BOOLEAN_OP, 'value' : op})
+
+			it += 1
+
+			# found operator, we can bail out
+			break
+		
+		it += 1
+
+	if not tokens and is_nature:
+		# figure out op of 'not is'
+		# is -> EQ
+		# is not -> NE
+		# is not not -> EQ
+		notnot = sum([1 for t in is_nature if t == 'not'])
+		tokens.append({'type' : TokenType.BOOLEAN_OP, 'value' : 'EQ' if not notnot%2 else 'NE'})
+
+	elif tokens and is_nature:
+		# see you later
+		# utimately : 'A is not as X as B'
+		# but this requires 'unary' negation operator
+		# once you can evaluate properly, you can merge this 'if' with the one above
+		# with 'if is_nature' only
+		pass
+
+	elif not tokens and not is_nature:
+		raiseError(line, 'Invalid boolean expression : no conditions')
+
+	# move cursor to right position in original line
+	i += sum([len(words[w]) + 1 for w in range(it)])
+	print(i)
+
+	print('x', line[i], 'x')
+
+	# 3. capture second variable
+	var2, ind = getNextVariable(line, i)
+	# if var2 == None:
+	# 	raiseError(line, "Invalid flow control")
+	if var2:
+		tokens.append(var2)
+
+	i += ind + 1	
+
+	return [var1] + tokens, i
 
 def preProcessLine(line):
 	"""
@@ -166,13 +282,16 @@ def tokenize(preProcessedLine):
 		if nextWord in FLOW_CONTROL_OPS :
 			tokenTree.append({"type":"flow control", "value":nextWord})
 			i+=len(nextWord)+1
-			
+
+			# expr_tokens, i = parseBooleanExpression(line, i)
+			# tokenTree.extend(expr_tokens)
+	
 			var, ind = getNextVariable(line, i)
 			if var == None:
 				raiseError(line, "Invalid flow control")
 			tokenTree.append(var)
 			i=ind+1
-			
+
 			nextWord = getNextWord(line, i)
 			
 			# comparison is

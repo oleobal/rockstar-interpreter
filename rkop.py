@@ -13,37 +13,35 @@ ARITHMETIC_OPS = {
 }
 
 CONDITIONAL_OPS = {
-	'is higher than' : 'GT',
-	'is greater than' : 'GT',
-	'is more than' : 'GT',
-	'is stronger than' : 'GT',
-	'is bigger than' : 'GT',
+	'higher than' : 'GT',
+	'greater than' : 'GT',
+	'more than' : 'GT',
+	'stronger than' : 'GT',
+	'bigger than' : 'GT',
 
-	'is lower than' : 'LT',
-	'is less than' : 'LT',
-	'is weaker than' : 'LT',
-	'is smaller than' : 'LT',
+	'lower than' : 'LT',
+	'less than' : 'LT',
+	'weaker than' : 'LT',
+	'smaller than' : 'LT',
 
-	'is as high as' : 'GE',
-	'is as big as' : 'GE',
-	'is as strong as' : 'GE',
-	'is as great as' : 'GE',
-	'is as beautiful as' : 'GE',
+	'as high as' : 'GE',
+	'as big as' : 'GE',
+	'as strong as' : 'GE',
+	'as great as' : 'GE',
+	'as beautiful as' : 'GE',
 
-	'is as low as' : 'LE',
-	'is as small as' : 'LE',
-	'is as weak as' : 'LE',
-	'is as bad as' : 'LE',
-	'is as little as' : 'LE',
-	'is as ugly as' : 'LE',
+	'as low as' : 'LE',
+	'as small as' : 'LE',
+	'as weak as' : 'LE',
+	'as bad as' : 'LE',
+	'as little as' : 'LE',
+	'as ugly as' : 'LE',
 
-	'is as' : 'EQ',
-
-	'is not as' : 'NE',
 }
 
 class TokenType:
 	ARITHMETIC_OP = 'arithmetic operator'
+	BOOLEAN_OP = 'comparator'
 	OP = 'operator'
 	VAR = 'variable'
 	LITERAL = 'literal'
