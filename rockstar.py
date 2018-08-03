@@ -373,6 +373,23 @@ def evaluate(expression, context):
 	
 	return expression
 
+
+def doIt(comparisonExpression):
+	"""
+	Takes in a comparison and returns True or False
+	:param comparisonExpression: of the form {variable, comparison operator, {sub expression to evaluate}}
+	"""
+	comped = context["variables"][comparisonExpression[0]["value"]]["value"]
+	op = comparisonExpression[1]["value"]
+	comptarget = evaluate(comparisonExpression[2], context)[0] # reminder evaluate returns (value, 'type'), maybe it wasn't such a good idea
+	if op == "EQ":
+		if comped == comptarget :
+			return True
+	elif op == "NE":
+		if comped != comptarget :
+			return True
+	return False
+
 def processInstruction(instruction, context):
 	"""
 	Execute instruction
@@ -407,21 +424,9 @@ def processInstruction(instruction, context):
 	
 	# Conditionals
 	if instruction[0]["value"] == "If" :
-		print(instruction)
-		print()
-		comped = context["variables"][instruction[1]["value"]]["value"]
-		op = instruction[2]["value"]
-		comptarget = evaluate(instruction[3], context)[0] # reminder evaluate returns (value, 'type'), maybe it wasn't such a good idea
-		print(comped, op, comptarget)
-		print()
-		if op == "EQ":
-			if comped == comptarget :
-				for i in instruction[4:]:
-					processInstruction(i,context)
-		elif op == "NE":
-			if comped != comptarget :
-				for i in instruction[4:]:
-					processInstruction(i,context)
+		if doIt(instruction[1:4]) :
+			for i in instruction[4:]:
+				processInstruction(i,context)
 		# TODO
 
 
