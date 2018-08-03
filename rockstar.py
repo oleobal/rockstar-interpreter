@@ -190,7 +190,7 @@ def tokenize(preProcessedLine):
 				i+=5
 				nextWord = getNextWord(line,i)
 			
-			tokenTree.append(tokenize(line[i:]))
+			tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
 			
 			# TODO other comparisons
 			
@@ -314,7 +314,6 @@ def evaluate(expression, context):
 
 	rexpr = None
 	
-	
 	if type(expression) is tuple :
 		rexpr = expression
 	
@@ -377,13 +376,16 @@ def evaluate(expression, context):
 def processInstruction(instruction, context):
 	"""
 	Execute instruction
-	:param instruction: a tokenized tree
+	:param instruction: a tokenized tree, or a block expression
 	"""
 
 	LOG(instruction)
-
-	# I/O
 	
+	if type(instruction) is dict:
+		if instruction["type"] == "block" :
+			instruction = instruction["value"]
+	
+	# I/O
 	if instruction[0]["value"] == "say" :
 		print(str(evaluate(instruction[1:], context)[0]))
 	
@@ -402,7 +404,25 @@ def processInstruction(instruction, context):
 		context["variables"][instruction[0]["value"]] = {"type" : instruction[2]["type"], "value":instruction[2]["value"]}
 		context["last named variable"] = instruction[0]["value"]
 		# already handled in the tokenizer
-		
+	
+	# Conditionals
+	if instruction[0]["value"] == "If" :
+		print(instruction)
+		print()
+		comped = context["variables"][instruction[1]["value"]]["value"]
+		op = instruction[2]["value"]
+		comptarget = evaluate(instruction[3], context)[0] # reminder evaluate returns (value, 'type'), maybe it wasn't such a good idea
+		print(comped, op, comptarget)
+		print()
+		if op == "EQ":
+			if comped == comptarget :
+				for i in instruction[4:]:
+					processInstruction(i,context)
+		elif op == "NE":
+			if comped != comptarget :
+				for i in instruction[4:]:
+					processInstruction(i,context)
+		# TODO
 
 
 def processTextBlock(line, iterator, context, isTopLevelBlock=False):
@@ -439,11 +459,12 @@ def processTextBlock(line, iterator, context, isTopLevelBlock=False):
 		global FLOW_CONTROL_OPS
 		if instruction[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
-			instruction += processTextBlock(line, iterator, context)
-		
+			# should it be just a list of 
+			instruction += [{"type":"block", "value":processTextBlock(line, iterator, context)}]
 		
 		# instruction
-		processInstruction(instruction, context)
+		if isTopLevelBlock:
+			processInstruction(instruction, context)
 			
 		line = next(iterator, "")
 	
