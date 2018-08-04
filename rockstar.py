@@ -1,8 +1,11 @@
 import sys
 import re
 import argparse
-import pdb
-from pprint import pprint as pprint
+import pprint as prettyprint
+
+def pprint(o):
+	prettyprint.pprint(o)
+	print()
 
 
 from rkop import *
@@ -402,7 +405,11 @@ def processInstruction(instruction, context):
 	
 	if type(instruction) is dict:
 		if instruction["type"] == "block" :
-			instruction = instruction["value"]
+			instructionList = instruction["value"]
+			for i in instructionList:
+				processInstruction(i,context)
+				return
+	
 	
 	# I/O
 	if instruction[0]["value"] == "say" :
@@ -427,55 +434,94 @@ def processInstruction(instruction, context):
 	# Conditionals
 	if instruction[0]["value"] == "If" :
 		if doIt(instruction[1:4]) :
-			for i in instruction[4:]:
+			for i in instruction[4]["value"]:
 				processInstruction(i,context)
-		# TODO
+	
+	if instruction[0]["value"] == "While" :
+		while doIt(instruction[1:4]) :
+			for i in instruction[4]["value"]:
+				processInstruction(i,context)
+			
+				
+	if instruction[0]["value"] == "Until" :
+		while not doIt(instruction[1:4]) :
+			for i in instruction[4]["value"]:
+				processInstruction(i,context)
 
 
-def processTextBlock(line, iterator, context, isTopLevelBlock=False):
+def processTextBlock(line, iterator, context):
 	"""
-	An instruction is typically a single line, but multiline instruction (whiles..) exist and in this case we wait for the end of the block to execute it in its entirety. The obvious exception is the top level block
+	Returns a block of the form :
+	{
+		"type":"block",
+		"value":
+			[
+				[inst1 : list of tokens],
+				[inst2 : list of tokens],
+				...
+			]
+	}
 	
 	:param line: first line of the block
 	:param iterator: the line iterator over the input code
 	:param context: the program context
-	:param isTopLevelBlock: call with True, False is for recursion
 	"""
 
-	instruction = None
+	instruction = []
+	
+	while preProcessLine(line) != "" :
+		line = preProcessLine(line)
+		
+		currentLine = tokenize(line)
+		
+		instruction.append(currentLine)
+		
+		# sub block
+		global FLOW_CONTROL_OPS
+		if currentLine[0]["value"] in FLOW_CONTROL_OPS:
+			line = next(iterator, "")
+			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
+			
+		line = next(iterator, "")
+	
+	return instruction
 
+
+def processProgram(line, iterator, context):
+	"""
+	Recursion is complicated, I split this from processTextBlock for my
+	brain's sake.
+	
+	:param line: first line of the program
+	:param iterator: the line iterator over the input code
+	:param context: the program context
+	"""
 	# discard leading empty lines
 	# I had this problem while processing text
 	while not line.strip():
 		line = next(iterator, "")
 	
-	while line != "" :
-	
+
+	while line != "":
 		line = preProcessLine(line)
-		# end of block
-		if line.strip() == "":
-			if isTopLevelBlock:
-				line = next(iterator, "")
-				continue
-			else:
-				break
+		
+		if line == "" :
+			line = next(iterator, "")
+			continue
 		
 		instruction = tokenize(line)
 		
-		# sub block
+		# blocks
 		global FLOW_CONTROL_OPS
 		if instruction[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
-			# should it be just a list of 
-			instruction += [{"type":"block", "value":processTextBlock(line, iterator, context)}]
+			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
 		
-		# instruction
-		if isTopLevelBlock:
-			processInstruction(instruction, context)
-			
+		processInstruction(instruction,context)
+		
 		line = next(iterator, "")
 	
-	return instruction
+	
 
 if __name__ == '__main__':
 
@@ -494,7 +540,7 @@ if __name__ == '__main__':
 	if args.filepath:
 		# reading input file from argument
 		with open(args.filepath) as f:
-			processTextBlock(f.readline(), f, context, isTopLevelBlock=True)
+			processProgram(f.readline(), f, context)
 
 	else:
 		# fire up the rockstar shell
