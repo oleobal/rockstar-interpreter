@@ -201,6 +201,16 @@ def tokenize(preProcessedLine):
 			
 			continue
 		
+		# loop control
+		# TODO errors if misused, but honestly whatev
+		
+		if line[i:].find("Break it down") == 0 or nextWord == "break" :
+			tokenTree.append({"type":"loop control", "value":"break"})
+			i=len(line)
+		if line[i:].find("Take it to the top") == 0 or nextWord == "continue" :	
+			tokenTree.append({"type":"loop control", "value":"continue"})
+			i=len(line)
+		
 		# assignment
 		
 		if nextWord == "Put" :
@@ -399,6 +409,8 @@ def processInstruction(instruction, context):
 	"""
 	Execute instruction
 	:param instruction: a tokenized tree, or a block expression
+	:returns: None, or a string containing a command if it needs to
+	  change code execution (for breaks and continues)
 	"""
 
 	LOG(instruction)
@@ -436,19 +448,44 @@ def processInstruction(instruction, context):
 		if doIt(instruction[1:4]) :
 			for i in instruction[4]["value"]:
 				processInstruction(i,context)
+	# TODO else
+	
 	
 	if instruction[0]["value"] == "While" :
 		while doIt(instruction[1:4]) :
 			for i in instruction[4]["value"]:
-				processInstruction(i,context)
+				r = processInstruction(i,context)
+				if r in ("break", "continue"):
+					break
+			if r == "break":
+				break
+			if r == "continue":
+				continue
 			
 				
 	if instruction[0]["value"] == "Until" :
 		while not doIt(instruction[1:4]) :
 			for i in instruction[4]["value"]:
-				processInstruction(i,context)
+				r = processInstruction(i,context)
+				if r in ("break", "continue"):
+					break
+			if r == "break":
+				break
+			if r == "continue":
+				continue
+			
 
-
+	
+	# loop control
+	
+	# spec is not clear on what exactly breaks/continues do so let's
+	# do as in python
+	
+	if instruction[0]["type"] == "loop control" :
+		return instruction[0]["value"]
+	
+	return None
+	
 def processTextBlock(line, iterator, context):
 	"""
 	Returns a block of the form :
@@ -481,6 +518,7 @@ def processTextBlock(line, iterator, context):
 		if currentLine[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
 			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
+			import pdb;pdb.set_trace()
 			
 		line = next(iterator, "")
 	
