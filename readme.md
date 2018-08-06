@@ -9,7 +9,7 @@ Is it a virtual machine running in a virtual machine ? Yes.
 
 `python3 rockstar.py <input.rock>`
 
-Since this is line-per-line interpretation, an interactive mode should not be hard to set up, but this is low priority.
+Since this is line-per-line interpretation, an interactive mode is available : just run `python3 rkshell.py`
 
 ### Inner workings
 
@@ -21,7 +21,7 @@ Then, it is sent to `processInstruction`, which executes the instruction, making
 
 The exception is for blocks, which are sent (as text) to `processLineBlock` instead, basically a recursive version of `processProgram`. Blocks are only executed once they are finished.
 
-If it is a multiline instruction (block), we block (ha) after the tokenization, growing the AST until we reached root level again, at which point the AST is executed. *(not yet implemented)*
+If it is a multiline instruction (block), we block (ha) after the tokenization, growing the AST until we reached root level again, at which point the AST is executed.
 
 
 ### Venues for improvement
