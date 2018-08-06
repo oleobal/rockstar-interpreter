@@ -488,20 +488,11 @@ def processInstruction(instruction, context):
 	
 def processTextBlock(line, iterator, context):
 	"""
-	Returns a block of the form :
-	{
-		"type":"block",
-		"value":
-			[
-				[inst1 : list of tokens],
-				[inst2 : list of tokens],
-				...
-			]
-	}
 	
 	:param line: first line of the block
 	:param iterator: the line iterator over the input code
 	:param context: the program context
+	:returns: a list of instructions, each as a list itself
 	"""
 
 	instruction = []
@@ -517,10 +508,10 @@ def processTextBlock(line, iterator, context):
 		global FLOW_CONTROL_OPS
 		if currentLine[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
-			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
-			import pdb;pdb.set_trace()
+			currentLine.append({"type":"block", "value":processTextBlock(line, iterator, context)})
 			
 		line = next(iterator, "")
+	
 	
 	return instruction
 
@@ -554,6 +545,8 @@ def processProgram(line, iterator, context):
 		if instruction[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
 			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
+			print("LOL")
+			pprint(instruction)
 		
 		processInstruction(instruction,context)
 		
