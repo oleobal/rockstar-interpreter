@@ -396,7 +396,8 @@ def doIt(comparisonExpression):
 	"""
 	comped = context["variables"][comparisonExpression[0]["value"]]["value"]
 	op = comparisonExpression[1]["value"]
-	comptarget = evaluate(comparisonExpression[2], context)[0] # reminder evaluate returns (value, 'type'), maybe it wasn't such a good idea
+	comptarget = evaluate(comparisonExpression[2], context)[0]
+	# reminder evaluate returns (value, 'type'), maybe wasn't such a good idea
 	if op == "EQ":
 		if comped == comptarget :
 			return True
@@ -405,10 +406,37 @@ def doIt(comparisonExpression):
 			return True
 	return False
 
+	
+def processBlock(block, context):
+	"""
+	Processes blocks, either as "block" expressions or as lists of instructions
+	Contains logic for processing return values (breaks/continues)
+	When one of the instructions in the block returns a command, execution
+	stops there and that value is returned.
+	
+	:param block: either a block expression or a list of instruction
+	:param context: the context
+	:param returns: None, or a string containing a command if it needs to
+	"""
+	
+	if type(block) is dict:
+		if block["type"] == "block" :
+			instructionList = block["value"]
+	elif type(block) is list:
+		instructionList = block
+	
+	for i in instructionList:
+		r = processInstruction(i,context)
+		if r in ("break", "continue"):
+			break
+	
+	return r
+	
 def processInstruction(instruction, context):
 	"""
 	Execute instruction
 	:param instruction: a tokenized tree, or a block expression
+	:param context: the context
 	:returns: None, or a string containing a command if it needs to
 	  change code execution (for breaks and continues)
 	"""
@@ -417,10 +445,7 @@ def processInstruction(instruction, context):
 	
 	if type(instruction) is dict:
 		if instruction["type"] == "block" :
-			instructionList = instruction["value"]
-			for i in instructionList:
-				processInstruction(i,context)
-				return
+			return processBlock(instruction, context)
 	
 	
 	# I/O
@@ -446,17 +471,13 @@ def processInstruction(instruction, context):
 	# Conditionals
 	if instruction[0]["value"] == "If" :
 		if doIt(instruction[1:4]) :
-			for i in instruction[4]["value"]:
-				processInstruction(i,context)
+			return processBlock(instruction[4], context)
 	# TODO else
 	
 	
 	if instruction[0]["value"] == "While" :
 		while doIt(instruction[1:4]) :
-			for i in instruction[4]["value"]:
-				r = processInstruction(i,context)
-				if r in ("break", "continue"):
-					break
+			r = processBlock(instruction[4], context)
 			if r == "break":
 				break
 			if r == "continue":
@@ -465,10 +486,7 @@ def processInstruction(instruction, context):
 				
 	if instruction[0]["value"] == "Until" :
 		while not doIt(instruction[1:4]) :
-			for i in instruction[4]["value"]:
-				r = processInstruction(i,context)
-				if r in ("break", "continue"):
-					break
+			r = processBlock(instruction[4],context)
 			if r == "break":
 				break
 			if r == "continue":
@@ -478,8 +496,10 @@ def processInstruction(instruction, context):
 	
 	# loop control
 	
-	# spec is not clear on what exactly breaks/continues do so let's
-	# do as in python
+	# spec is not clear on what exactly breaks/continues do
+	# "as in block based languages", no shit, there's probably a language
+	# where a robo-leg kicks your ass when breaking or something
+	# so let's do as in python
 	
 	if instruction[0]["type"] == "loop control" :
 		return instruction[0]["value"]
@@ -488,6 +508,36 @@ def processInstruction(instruction, context):
 	
 def processTextBlock(line, iterator, context):
 	"""
+	This works like processProgram, but instead of executing each instruction
+	as they are finished, they are appended to a list that is returned once
+	an empty line encountered (a block-starting keyword triggers a recursive
+	call to this function)
+	
+	Here is an instance of return value :
+	(with added comments)
+	[
+	 # list of tokens = instruction
+	 {'type': 'flow control', 'value': 'If'},
+	 
+	 # expression evaluated for 'If' follows
+	 # as <expression> <comparator> <expression>
+	 # FIXME : or is it just variable in first place ? Should be expression
+	 {'type': 'variable', 'value': 'my heart'},
+	 {'type': 'comparator', 'value': 'EQ'},
+	 {'type': 'expression',
+	  'value': [{'type': 'number', 'value': 400.0}]},
+	  
+	 # block to be executed follows
+	 {'type': 'block',
+	  'value':
+	   [
+	    # list of instructions follows
+		[{'type': 'operator', 'value': 'say'},
+             {'type': 'variable', 'value': 'my heart'}],
+	    [{'type': 'loop control', 'value': 'break'}]
+	   ]
+	 }
+	]
 	
 	:param line: first line of the block
 	:param iterator: the line iterator over the input code
@@ -518,6 +568,9 @@ def processTextBlock(line, iterator, context):
 
 def processProgram(line, iterator, context):
 	"""
+	This reads lines from whatever wrapper it has been given and executes
+	each instruction it finds.
+	
 	Recursion is complicated, I split this from processTextBlock for my
 	brain's sake.
 	
@@ -545,8 +598,6 @@ def processProgram(line, iterator, context):
 		if instruction[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
 			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
-			print("LOL")
-			pprint(instruction)
 		
 		processInstruction(instruction,context)
 		
