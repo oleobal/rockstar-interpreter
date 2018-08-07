@@ -27,10 +27,7 @@ class InputProgramError(Exception):
 def raiseError(line, text):
 	raise InputProgramError("Line : "+str(line)+"\nError : "+str(text))
 
-def parseBooleanExpression(line, i):
-
-	# 2. recognize operator
-	# 2.5. recognize negation
+def parseConditionalExpression(line, i):
 
 	# 1. capture first variable
 	var1, ind = getNextVariable(line, i)
@@ -77,9 +74,9 @@ def parseBooleanExpression(line, i):
 			if not op:
 				raiseError(name, 'Invalid conditional operator')
 			
-			LOG('identified boolean op :', op, 'from', line, 'at', it)
+			LOG('identified conditional op :', op, 'from', line, 'at', it)
 			
-			tokens.append({'type' :TokenType.BOOLEAN_OP, 'value' : op})
+			tokens.append({'type' :TokenType.CONDITIONAL_OP, 'value' : op})
 			
 			it += 3
 
@@ -88,7 +85,7 @@ def parseBooleanExpression(line, i):
 
 		# X than
 		else:
-			# look back
+			# search for 'than' word next to current word
 			if it + 1 >= len(words) or words[it + 1] != 'than':
 				break
 
@@ -99,9 +96,9 @@ def parseBooleanExpression(line, i):
 			if not op:
 				raiseError(name, 'Invalid conditional operator')
 			
-			LOG('identified boolean op :', op, 'from', line, 'at', it)
+			LOG('identified conditional op :', op, 'from', line, 'at', it)
 			
-			tokens.append({'type' :TokenType.BOOLEAN_OP, 'value' : op})
+			tokens.append({'type' :TokenType.CONDITIONAL_OP, 'value' : op})
 
 			it += 2
 
@@ -110,15 +107,13 @@ def parseBooleanExpression(line, i):
 		
 		it += 1
 
-	LOG('isn', is_nature)
-
 	if not tokens and is_nature:
 		# figure out op of 'not is'
 		# is -> EQ
 		# is not -> NE
 		# is not not -> EQ
 		notnot = sum([1 for t in is_nature if t == 'not'])
-		tokens.append({'type' : TokenType.BOOLEAN_OP, 'value' : 'EQ' if not notnot%2 else 'NE'})
+		tokens.append({'type' : TokenType.CONDITIONAL_OP, 'value' : 'EQ' if not notnot%2 else 'NE'})
 
 	elif tokens and is_nature:
 		# see you later
@@ -133,14 +128,11 @@ def parseBooleanExpression(line, i):
 
 	# move cursor to right position in original line
 	i += sum([len(words[w]) + 1 for w in range(it)])
-	LOG(i)
-
-	LOG('x', line[i], 'x')
+	
+	LOG(i, line[i:])
 
 	# 3. capture second variable
 	var2, ind = getNextVariable(line, i)
-	# if var2 == None:
-	# 	raiseError(line, "Invalid flow control")
 	if var2:
 		tokens.append(var2)
 
@@ -306,7 +298,7 @@ def tokenize(preProcessedLine):
 			tokenTree.append({"type":"flow control", "value":nextWord})
 			i+=len(nextWord)+1
 
-			expr_tokens, i = parseBooleanExpression(line, i)
+			expr_tokens, i = parseConditionalExpression(line, i)
 			tokenTree.extend(expr_tokens)
 	
 			# var, ind = getNextVariable(line, i)
@@ -526,7 +518,7 @@ def evaluate(expression, context):
 	return expression
 
 
-def doIt(comparisonExpression):
+def processConditionalExpression(comparisonExpression):
 	"""
 	Takes in a comparison and returns True or False
 	:param comparisonExpression: of the form {variable, comparison operator, {sub expression to evaluate}}
@@ -535,12 +527,18 @@ def doIt(comparisonExpression):
 	op = comparisonExpression[1]["value"]
 	comptarget = evaluate(comparisonExpression[2], context)[0]
 	# reminder evaluate returns (value, 'type'), maybe wasn't such a good idea
-	if op == "EQ":
-		if comped == comptarget :
-			return True
-	elif op == "NE":
-		if comped != comptarget :
-			return True
+	# if op == "EQ":
+	# 	if comped == comptarget :
+	# 		return True
+	# elif op == "NE":
+	# 	if comped != comptarget :
+	# 		return True
+	
+	if op not in conditional_operations:
+		raiseError('{} : unknown conditional operator'.format(op))
+	# admitedly only binary
+	return conditional_operations[op](comped, comptarget)
+
 	return False
 
 	
@@ -611,13 +609,13 @@ def processInstruction(instruction, context):
 	
 	# Conditionals
 	if instruction[0]["value"] == "If" :
-		if doIt(instruction[1:4]) :
+		if processConditionalExpression(instruction[1:4]) :
 			return processBlock(instruction[4], context)
 	# TODO else
 	
 	
 	if instruction[0]["value"] == "While" :
-		while doIt(instruction[1:4]) :
+		while processConditionalExpression(instruction[1:4]) :
 			r = processBlock(instruction[4], context)
 			if r == "break":
 				break
@@ -626,7 +624,7 @@ def processInstruction(instruction, context):
 			
 				
 	if instruction[0]["value"] == "Until" :
-		while not doIt(instruction[1:4]) :
+		while not processConditionalExpression(instruction[1:4]) :
 			r = processBlock(instruction[4],context)
 			if r == "break":
 				break

@@ -2,7 +2,7 @@ Put 1 into my heart
 Put 2 into my arm
 Put 3 into my head
 Put 0 into my test
-Put 5 into the allfather
+Put 6 into the allfather
 
 If my head is not my heart
 Say "is not: Okay"
@@ -32,5 +32,5 @@ If my test is the allfather
 Say "All tests passed"
 
 If my test is not the allfather
-Spit my test times 100 over the allfather
+Spit my test over the allfather
 Shout "tests passed"
