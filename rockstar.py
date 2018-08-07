@@ -38,6 +38,7 @@ def parseBooleanExpression(line, i):
 	# then either 'as X as' or 'X than'
 	tokens = []
 	words = line[i:].split()
+	LOG('words:', words)
 	is_nature = []
 	it = 0
 	while it < len(words):
@@ -62,7 +63,7 @@ def parseBooleanExpression(line, i):
 			if it + 2 >= len(words):
 				raiseError(line, 'Invalid conditional expression')
 			
-			name = ' '.join(nextWord, *words[it:it+2])
+			name = ' '.join([nextWord, *words[it+1:it+3]])
 
 			op = CONDITIONAL_OPS.get(name, None)
 
@@ -73,7 +74,7 @@ def parseBooleanExpression(line, i):
 			
 			tokens.append({'type' :TokenType.BOOLEAN_OP, 'value' : op})
 			
-			it += 2
+			it += 3
 
 			# found operator, we can bail out
 			break
@@ -95,7 +96,7 @@ def parseBooleanExpression(line, i):
 			
 			tokens.append({'type' :TokenType.BOOLEAN_OP, 'value' : op})
 
-			it += 1
+			it += 2
 
 			# found operator, we can bail out
 			break
@@ -123,9 +124,9 @@ def parseBooleanExpression(line, i):
 
 	# move cursor to right position in original line
 	i += sum([len(words[w]) + 1 for w in range(it)])
-	print(i)
+	LOG(i)
 
-	print('x', line[i], 'x')
+	LOG('x', line[i], 'x')
 
 	# 3. capture second variable
 	var2, ind = getNextVariable(line, i)
@@ -283,33 +284,33 @@ def tokenize(preProcessedLine):
 			tokenTree.append({"type":"flow control", "value":nextWord})
 			i+=len(nextWord)+1
 
-			# expr_tokens, i = parseBooleanExpression(line, i)
-			# tokenTree.extend(expr_tokens)
+			expr_tokens, i = parseBooleanExpression(line, i)
+			tokenTree.extend(expr_tokens)
 	
-			var, ind = getNextVariable(line, i)
-			if var == None:
-				raiseError(line, "Invalid flow control")
-			tokenTree.append(var)
-			i=ind+1
+			# var, ind = getNextVariable(line, i)
+			# if var == None:
+			# 	raiseError(line, "Invalid flow control")
+			# tokenTree.append(var)
+			# i=ind+1
 
-			nextWord = getNextWord(line, i)
+			# nextWord = getNextWord(line, i)
 			
-			# comparison is
-			if nextWord == "is" :
-				i+=3
-				nextWord = getNextWord(line,i)
-				if nextWord == "not" :
-					tokenTree.append({"type":"comparator","value":"NE"})
-					i+=4
-					nextWord = getNextWord(line,i)
-				else :
-					tokenTree.append({"type":"comparator","value":"EQ"})
-			elif nextWord == "aint" :
-				tokenTree.append({"type":"comparator","value":"NE"})
-				i+=5
-				nextWord = getNextWord(line,i)
+			# # comparison is
+			# if nextWord == "is" :
+			# 	i+=3
+			# 	nextWord = getNextWord(line,i)
+			# 	if nextWord == "not" :
+			# 		tokenTree.append({"type":"comparator","value":"NE"})
+			# 		i+=4
+			# 		nextWord = getNextWord(line,i)
+			# 	else :
+			# 		tokenTree.append({"type":"comparator","value":"EQ"})
+			# elif nextWord == "aint" :
+			# 	tokenTree.append({"type":"comparator","value":"NE"})
+			# 	i+=5
+			# 	nextWord = getNextWord(line,i)
 			
-			tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
+			# tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
 			
 			# TODO other comparisons
 			
