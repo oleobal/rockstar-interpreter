@@ -24,6 +24,19 @@ The exception is for blocks, which are sent (as text) to `processLineBlock` inst
 If it is a multiline instruction (block), we block (ha) after the tokenization, growing the AST until we reached root level again, at which point the AST is executed.
 
 
+### Non-conformities
+
+This is compared to the copy of the specification in this repository (`specification.md`), not the official one; this is just to avoid chasing a moving target. We are, of course, planning on making this list empty.
+
+ - Arithmetic is not fully functional yet
+ - Comparison is not fully functional yet
+ - Listening to `stdin` is not implemented (printing to `stdout` is)
+ - Else blocks are not implemented
+ - Functions are not implemented
+ - Text preprocessing is crude, and in particular targets even what is inside `""` quotes, which means string literals can get changed by the preprocessor (single quotes, for instance, are removed). The problem here is that to identify string literals means we have to already largely tokenize everything, to identify what is a string literal, because of poetic string literals.
+ - "inclusive" pronouns are present but not enabled. We are planning on an option to enable them.
+ - Type handling is largely ignored, but this is also because there is no way to manipulate types in the language, so that is a moot point.
+
 ### Venues for improvement
 
 We are trying to get feature complete as fast as possible, and then solve the issues uncovered along the way.
