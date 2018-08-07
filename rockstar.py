@@ -36,7 +36,7 @@ def preProcessLine(line):
 	line = re.sub(r"'s\W+", " is ", line)
 	line.replace("'", "")
 	# removing non alphabetical characters (save for . " and numbers)
-	# line = re.sub(r"[^a-zA-Z0-9.\" ]+", "", line)
+	line = re.sub(r"[^a-zA-Z0-9.\" ]+", "", line)
 	# FIXME this is actually wrong because we'll also be removing them from string literals
 	# and it's not as simple as avoiding what is inside "", because of poetic string literals
 	# and also poetic things can contain keywords
@@ -57,6 +57,11 @@ def getNextWord(text, index):
 	Given a string and a position in that string
 	returns the word (delimited by whitespace) that follows
 	"""
+	
+	if index == len(text):
+		return None
+		# FIXME
+	
 	text = text[index:]
 	result = ""
 	i = 0
@@ -76,6 +81,8 @@ def getNextVariable(line, index):
 	else, it returns None and the same index
 	"""
 	nextWord = getNextWord(line, index)
+	if nextWord == None:
+		return None, index
 	
 	# common variables
 	if nextWord.lower() in ("a", "an", "the", "my", "your") :
@@ -113,6 +120,8 @@ def tokenize(preProcessedLine):
 		i+=1
 		newToken = {"type":"none", "value":None}
 		nextWord = getNextWord(line, i)
+		if nextWord == None:
+			break # my suspicion is that it is the sign of a  bigger problem, but oh well
 		
 		# separator
 		try:
@@ -206,9 +215,24 @@ def tokenize(preProcessedLine):
 		if line[i:].find("Break it down") == 0 or nextWord == "break" :
 			tokenTree.append({"type":"loop control", "value":"break"})
 			i=len(line)
+			continue
 		if line[i:].find("Take it to the top") == 0 or nextWord == "continue" :	
 			tokenTree.append({"type":"loop control", "value":"continue"})
 			i=len(line)
+			continue
+		
+		# function declaration
+		
+		if nextWord == "takes" :
+			if tokenTree[-1]["type"] != "variable" :
+				raiseError(line, "Incorrect function declaration") # TODO should be more rigorous
+			tokenTree.append({"type":"function declaration", "value":"function declaration"})
+			i+=len(nextWord)+1
+			arguments = line[i:].split(" and ")
+			# could also be made part of previous token
+			tokenTree.append({"type":"function argument list","value":arguments})
+			i = len(line)
+			continue
 		
 		# assignment
 		
@@ -279,11 +303,11 @@ def tokenize(preProcessedLine):
 			else:
 				raiseError(line, "Invalid poetic string assignment")
 		
-		# TODO treat all keywords before variables so the only thing left is variables
+			
+		# treat all keywords before variables so the only thing left is variables
+		
 		
 		# common variable
-		
-		
 		
 		var, ind = getNextVariable(line, i)
 		if var != None:
@@ -554,10 +578,10 @@ def processTextBlock(line, iterator, context):
 		
 		# sub block
 		global FLOW_CONTROL_OPS
-		if currentLine[0]["value"] in FLOW_CONTROL_OPS:
+		if currentLine[0]["value"] in FLOW_CONTROL_OPS :
 			line = next(iterator, "")
 			currentLine.append({"type":"block", "value":processTextBlock(line, iterator, context)})
-			
+		
 		line = next(iterator, "")
 	
 	
@@ -593,9 +617,11 @@ def processProgram(line, iterator, context):
 		
 		# blocks
 		global FLOW_CONTROL_OPS
-		if instruction[0]["value"] in FLOW_CONTROL_OPS:
+		# let us assume functions can only be declared at top level
+		if instruction[0]["value"] in FLOW_CONTROL_OPS or instruction[1]["type"] == "function declaration":
 			line = next(iterator, "")
 			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
+		
 		
 		processInstruction(instruction,context)
 		
@@ -616,6 +642,7 @@ if __name__ == '__main__':
 	context = {}
 	context["variables"] = {}
 	context["last named variable"] = None
+	context["functions"] = {}
 
 	if args.filepath:
 		# reading input file from argument
