@@ -32,7 +32,5 @@ If my test is the allfather
 Say "All tests passed"
 
 If my test is not the allfather
-Shout my test
-Shout "out of"
-Shout the allfather
-(Third line is considered out of block)
+Spit my test times 100 over the allfather
+Shout "tests passed"

@@ -287,7 +287,12 @@ def tokenize(preProcessedLine):
 			tokenTree.append({"type":"operator", "value":"say"})
 			i+=len(nextWord)
 			continue
-		
+
+		# A simple print statement w/o new line
+		if nextWord in ("Spit", 'Stutter'):
+			tokenTree.append({'type': 'operator', 'value': 'stutter'})
+			i += len(nextWord)
+			continue
 		
 		# flow control
 		
@@ -578,6 +583,10 @@ def processInstruction(instruction, context):
 	# I/O
 	if instruction[0]["value"] == "say" :
 		print(str(evaluate(instruction[1:], context)[0]))
+
+	if instruction[0]['value'] == 'stutter':
+		print(str(evaluate(instruction[1:], context)[0]), end=' ')
+
 	
 	# Variable assignment
 	
