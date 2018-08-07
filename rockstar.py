@@ -134,23 +134,14 @@ def tokenize(preProcessedLine):
 
 		# numeric literal
 		if line[i] in ("0","1","2","3","4","5","6","7","8","9") :
-			newToken["type"] = "number"
-			newToken["value"] = ""
-
-			while i < len(line) and line[i]:
-				newToken["value"]+=line[i]
-				i+=1
 			# this is actually not conform to the spec, which says all numbers should be DEC64
 			# not like anyone will ever care enough
-			try :
-				newToken["value"] = int(newToken["value"])
-			except ValueError:
-				pass
 			try:
-				newToken["value"] = float(newToken["value"])
+				newNum = float(nextWord)
 			except ValueError:
-				raiseError(preProcessedLine, "Invalid numeric literal")
-			tokenTree.append(newToken)
+				raiseError(preProcessedLine, "Invalid numeric literal : "+str(newToken))
+			tokenTree.append({"type":"number","value":newNum})
+			i+=len(nextWord)
 			continue
 	
 		# boolean literal
