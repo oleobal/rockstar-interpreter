@@ -2,7 +2,11 @@ import sys
 import re
 import argparse
 import pdb
-import pprint
+import pprint as prettyprint
+
+def pprint(o):
+	prettyprint.pprint(o)
+	print()
 
 from rkop import *
 import rkshell
@@ -202,6 +206,14 @@ def getNextVariable(line, index):
 		return ({"type":"variable", "value":varName}, index)
 		
 	# TODO proper variables
+	elif nextWord[0] != nextWord[0].lower():
+		varName = ""
+		while index < len(line) and nextWord[0] != nextWord[0].lower():
+			varName += nextWord+" "
+			index+=len(nextWord)+1
+			nextWord = getNextWord(line,index)
+		varName=varName[:-1] ; index-=1 # remove last space
+		return({"type": "variable", "value":varName},index)
 	
 	return None, index
 	
@@ -311,10 +323,21 @@ def tokenize(preProcessedLine):
 			# 	nextWord = getNextWord(line,i)
 			
 			# tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
+			# i=len(line)
 			
 			# TODO other comparisons
 			
 			continue
+		
+		# loop control
+		# TODO errors if misused, but honestly whatev
+		
+		if line[i:].find("Break it down") == 0 or nextWord == "break" :
+			tokenTree.append({"type":"loop control", "value":"break"})
+			i=len(line)
+		if line[i:].find("Take it to the top") == 0 or nextWord == "continue" :	
+			tokenTree.append({"type":"loop control", "value":"continue"})
+			i=len(line)
 		
 		# assignment
 		
@@ -409,7 +432,6 @@ def tokenize(preProcessedLine):
 			i+=len(nextWord)
 			continue
 		
-		
 	return tokenTree
 
 def guessTypeOf(thing):
@@ -501,7 +523,8 @@ def doIt(comparisonExpression):
 	"""
 	comped = context["variables"][comparisonExpression[0]["value"]]["value"]
 	op = comparisonExpression[1]["value"]
-	comptarget = evaluate(comparisonExpression[2], context)[0] # reminder evaluate returns (value, 'type'), maybe it wasn't such a good idea
+	comptarget = evaluate(comparisonExpression[2], context)[0]
+	# reminder evaluate returns (value, 'type'), maybe wasn't such a good idea
 	if op == "EQ":
 		if comped == comptarget :
 			return True
@@ -510,17 +533,47 @@ def doIt(comparisonExpression):
 			return True
 	return False
 
+	
+def processBlock(block, context):
+	"""
+	Processes blocks, either as "block" expressions or as lists of instructions
+	Contains logic for processing return values (breaks/continues)
+	When one of the instructions in the block returns a command, execution
+	stops there and that value is returned.
+	
+	:param block: either a block expression or a list of instruction
+	:param context: the context
+	:param returns: None, or a string containing a command if it needs to
+	"""
+	
+	if type(block) is dict:
+		if block["type"] == "block" :
+			instructionList = block["value"]
+	elif type(block) is list:
+		instructionList = block
+	
+	for i in instructionList:
+		r = processInstruction(i,context)
+		if r in ("break", "continue"):
+			break
+	
+	return r
+	
 def processInstruction(instruction, context):
 	"""
 	Execute instruction
 	:param instruction: a tokenized tree, or a block expression
+	:param context: the context
+	:returns: None, or a string containing a command if it needs to
+	  change code execution (for breaks and continues)
 	"""
 
 	LOG(instruction)
 	
 	if type(instruction) is dict:
 		if instruction["type"] == "block" :
-			instruction = instruction["value"]
+			return processBlock(instruction, context)
+	
 	
 	# I/O
 	if instruction[0]["value"] == "say" :
@@ -545,55 +598,139 @@ def processInstruction(instruction, context):
 	# Conditionals
 	if instruction[0]["value"] == "If" :
 		if doIt(instruction[1:4]) :
-			for i in instruction[4:]:
-				processInstruction(i,context)
-		# TODO
+			return processBlock(instruction[4], context)
+	# TODO else
+	
+	
+	if instruction[0]["value"] == "While" :
+		while doIt(instruction[1:4]) :
+			r = processBlock(instruction[4], context)
+			if r == "break":
+				break
+			if r == "continue":
+				continue
+			
+				
+	if instruction[0]["value"] == "Until" :
+		while not doIt(instruction[1:4]) :
+			r = processBlock(instruction[4],context)
+			if r == "break":
+				break
+			if r == "continue":
+				continue
+			
 
-
-def processTextBlock(line, iterator, context, isTopLevelBlock=False):
+	
+	# loop control
+	
+	# spec is not clear on what exactly breaks/continues do
+	# "as in block based languages", no shit, there's probably a language
+	# where a robo-leg kicks your ass when breaking or something
+	# so let's do as in python
+	
+	if instruction[0]["type"] == "loop control" :
+		return instruction[0]["value"]
+	
+	return None
+	
+def processTextBlock(line, iterator, context):
 	"""
-	An instruction is typically a single line, but multiline instruction (whiles..) exist and in this case we wait for the end of the block to execute it in its entirety. The obvious exception is the top level block
+	This works like processProgram, but instead of executing each instruction
+	as they are finished, they are appended to a list that is returned once
+	an empty line encountered (a block-starting keyword triggers a recursive
+	call to this function)
+	
+	Here is an instance of return value :
+	(with added comments)
+	[
+	 # list of tokens = instruction
+	 {'type': 'flow control', 'value': 'If'},
+	 
+	 # expression evaluated for 'If' follows
+	 # as <expression> <comparator> <expression>
+	 # FIXME : or is it just variable in first place ? Should be expression
+	 {'type': 'variable', 'value': 'my heart'},
+	 {'type': 'comparator', 'value': 'EQ'},
+	 {'type': 'expression',
+	  'value': [{'type': 'number', 'value': 400.0}]},
+	  
+	 # block to be executed follows
+	 {'type': 'block',
+	  'value':
+	   [
+	    # list of instructions follows
+		[{'type': 'operator', 'value': 'say'},
+             {'type': 'variable', 'value': 'my heart'}],
+	    [{'type': 'loop control', 'value': 'break'}]
+	   ]
+	 }
+	]
 	
 	:param line: first line of the block
 	:param iterator: the line iterator over the input code
 	:param context: the program context
-	:param isTopLevelBlock: call with True, False is for recursion
+	:returns: a list of instructions, each as a list itself
 	"""
 
-	instruction = None
+	instruction = []
+	
+	while preProcessLine(line) != "" :
+		line = preProcessLine(line)
+		
+		currentLine = tokenize(line)
+		
+		instruction.append(currentLine)
+		
+		# sub block
+		global FLOW_CONTROL_OPS
+		if currentLine[0]["value"] in FLOW_CONTROL_OPS:
+			line = next(iterator, "")
+			currentLine.append({"type":"block", "value":processTextBlock(line, iterator, context)})
+			
+		line = next(iterator, "")
+	
+	
+	return instruction
 
+
+def processProgram(line, iterator, context):
+	"""
+	This reads lines from whatever wrapper it has been given and executes
+	each instruction it finds.
+	
+	Recursion is complicated, I split this from processTextBlock for my
+	brain's sake.
+	
+	:param line: first line of the program
+	:param iterator: the line iterator over the input code
+	:param context: the program context
+	"""
 	# discard leading empty lines
 	# I had this problem while processing text
 	while not line.strip():
 		line = next(iterator, "")
 	
-	while line != "" :
-	
+
+	while line != "":
 		line = preProcessLine(line)
-		# end of block
-		if line.strip() == "":
-			if isTopLevelBlock:
-				line = next(iterator, "")
-				continue
-			else:
-				break
+		
+		if line == "" :
+			line = next(iterator, "")
+			continue
 		
 		instruction = tokenize(line)
 		
-		# sub block
+		# blocks
 		global FLOW_CONTROL_OPS
 		if instruction[0]["value"] in FLOW_CONTROL_OPS:
 			line = next(iterator, "")
-			# should it be just a list of 
-			instruction += [{"type":"block", "value":processTextBlock(line, iterator, context)}]
+			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
 		
-		# instruction
-		if isTopLevelBlock:
-			processInstruction(instruction, context)
-			
+		processInstruction(instruction,context)
+		
 		line = next(iterator, "")
 	
-	return instruction
+	
 
 if __name__ == '__main__':
 
@@ -612,7 +749,7 @@ if __name__ == '__main__':
 	if args.filepath:
 		# reading input file from argument
 		with open(args.filepath) as f:
-			processTextBlock(f.readline(), f, context, isTopLevelBlock=True)
+			processProgram(f.readline(), f, context)
 
 	else:
 		# fire up the rockstar shell
