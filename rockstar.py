@@ -614,7 +614,7 @@ def processProgram(line, iterator, context):
 
 if __name__ == '__main__':
 
-	argparser = argparse.ArgumentParser()
+	argparser = argparse.ArgumentParser(description="Interpreter for the Rockstar programming language.")
 	argparser.add_argument('filepath', nargs='?', help='path to the file to interpret')
 	argparser.add_argument('-v', '--verbose', action='store_true', help='show detailed debug messages')
 	

@@ -7,9 +7,9 @@ Is it a virtual machine running in a virtual machine ? Yes.
 
 ### Operation
 
-`python3 rockstar.py <input.rock>`
+`python3 rockstar.py [input.rock]`
 
-Since this is line-per-line interpretation, an interactive mode is available : just run `python3 rkshell.py`
+Since this is line-per-line interpretation, an interactive mode is available : just run the executable without input files.
 
 ### Inner workings
 
