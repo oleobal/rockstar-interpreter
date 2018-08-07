@@ -1,0 +1,36 @@
+Put 1 into my heart
+Put 2 into my arm
+Put 3 into my head
+Put 0 into my test
+Put 6 into the allfather
+
+If my head is not my heart
+Say "is not: Okay"
+Put my test plus 1 into my test
+
+If my head is my head
+Say "is: Okay"
+Put my test plus 1 into my test
+
+If my arm aint my head
+Say "aint: Okay"
+Put my test plus 1 into my test
+
+If my head is more than my heart
+Say "is X than: Okay"
+Put my test plus 1 into my test
+
+If my arm is less than my head
+Say "is X than: Okay"
+Put my test plus 1 into my test
+
+If my arm is as high as my heart
+Say "is as X as: Okay"
+Put my test plus 1 into my test
+
+If my test is the allfather
+Say "All tests passed"
+
+If my test is not the allfather
+Spit my test over the allfather
+Shout "tests passed"

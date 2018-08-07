@@ -1,12 +1,12 @@
 import sys
 import re
 import argparse
+import pdb
 import pprint as prettyprint
 
 def pprint(o):
 	prettyprint.pprint(o)
 	print()
-
 
 from rkop import *
 import rkshell
@@ -15,7 +15,10 @@ VERBOSE = 0
 
 def LOG(*args, sep=' '):
 	if VERBOSE:
-		print(*args, sep=sep)
+		if len(args) == 1:
+			pprint(args[0])
+		else:
+			print(*args, sep=sep)
 	#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
 
 class InputProgramError(Exception):
@@ -24,7 +27,118 @@ class InputProgramError(Exception):
 def raiseError(line, text):
 	raise InputProgramError("Line : "+str(line)+"\nError : "+str(text))
 
+def parseConditionalExpression(line, i):
 
+	# 1. capture first variable
+	var1, ind = getNextVariable(line, i)
+	if var1 == None:
+		raiseError(line, "Invalid flow control")
+
+	i = ind + 1
+
+	# 2. identify operator
+	# notes :
+	# - always begins by is + optional negation
+	# then either 'as X as' or 'X than'
+	tokens = []
+	words = line[i:].split()
+	LOG('words:', words)
+	is_nature = []
+	it = 0
+	while it < len(words):
+
+		nextWord = words[it].lower()
+
+		if nextWord in ['is', 'are', 'were']:
+			is_nature.append('is')
+			LOG('IS')
+		
+		elif nextWord in ['aint', 'wasnt', 'werent']:
+			is_nature.extend(['is', 'not'])
+			LOG('IS NOT')
+
+		elif nextWord in ['not', 'no']:
+			is_nature.append('not')
+			LOG('NOT')
+
+		# as X as
+		elif nextWord == 'as':
+			
+			if it + 2 >= len(words):
+				raiseError(line, 'Invalid conditional expression')
+			
+			name = ' '.join([nextWord, *words[it+1:it+3]])
+
+			op = CONDITIONAL_OPS.get(name, None)
+
+			if not op:
+				raiseError(name, 'Invalid conditional operator')
+			
+			LOG('identified conditional op :', op, 'from', line, 'at', it)
+			
+			tokens.append({'type' :TokenType.CONDITIONAL_OP, 'value' : op})
+			
+			it += 3
+
+			# found operator, we can bail out
+			break
+
+		# X than
+		else:
+			# search for 'than' word next to current word
+			if it + 1 >= len(words) or words[it + 1] != 'than':
+				break
+
+			name = nextWord + ' ' + words[it + 1]
+
+			op = CONDITIONAL_OPS.get(name, None)
+
+			if not op:
+				raiseError(name, 'Invalid conditional operator')
+			
+			LOG('identified conditional op :', op, 'from', line, 'at', it)
+			
+			tokens.append({'type' :TokenType.CONDITIONAL_OP, 'value' : op})
+
+			it += 2
+
+			# found operator, we can bail out
+			break
+		
+		it += 1
+
+	if not tokens and is_nature:
+		# figure out op of 'not is'
+		# is -> EQ
+		# is not -> NE
+		# is not not -> EQ
+		notnot = sum([1 for t in is_nature if t == 'not'])
+		tokens.append({'type' : TokenType.CONDITIONAL_OP, 'value' : 'EQ' if not notnot%2 else 'NE'})
+
+	elif tokens and is_nature:
+		# see you later
+		# utimately : 'A is not as X as B'
+		# but this requires 'unary' negation operator
+		# once you can evaluate properly, you can merge this 'if' with the one above
+		# with 'if is_nature' only
+		pass
+
+	elif not tokens and not is_nature:
+		raiseError(line, 'Invalid boolean expression : no conditions')
+
+	# move cursor to right position in original line
+	i += sum([len(words[w]) + 1 for w in range(it)])
+	
+	LOG(i, line[i:])
+
+	# 3. capture second variable
+	var2, ind = getNextVariable(line, i)
+	if var2:
+		tokens.append(var2)
+
+	i += ind + 1	
+
+	return [var1] + tokens, i
 
 def preProcessLine(line):
 	"""
@@ -170,7 +284,12 @@ def tokenize(preProcessedLine):
 			tokenTree.append({"type":"operator", "value":"say"})
 			i+=len(nextWord)
 			continue
-		
+
+		# A simple print statement w/o new line
+		if nextWord in ("Spit", 'Stutter'):
+			tokenTree.append({'type': 'operator', 'value': 'stutter'})
+			i += len(nextWord)
+			continue
 		
 		# flow control
 		
@@ -178,32 +297,35 @@ def tokenize(preProcessedLine):
 		if nextWord in FLOW_CONTROL_OPS :
 			tokenTree.append({"type":"flow control", "value":nextWord})
 			i+=len(nextWord)+1
+
+			expr_tokens, i = parseConditionalExpression(line, i)
+			tokenTree.extend(expr_tokens)
+	
+			# var, ind = getNextVariable(line, i)
+			# if var == None:
+			# 	raiseError(line, "Invalid flow control")
+			# tokenTree.append(var)
+			# i=ind+1
+
+			# nextWord = getNextWord(line, i)
 			
-			var, ind = getNextVariable(line, i)
-			if var == None:
-				raiseError(line, "Invalid flow control")
-			tokenTree.append(var)
-			i=ind+1
+			# # comparison is
+			# if nextWord == "is" :
+			# 	i+=3
+			# 	nextWord = getNextWord(line,i)
+			# 	if nextWord == "not" :
+			# 		tokenTree.append({"type":"comparator","value":"NE"})
+			# 		i+=4
+			# 		nextWord = getNextWord(line,i)
+			# 	else :
+			# 		tokenTree.append({"type":"comparator","value":"EQ"})
+			# elif nextWord == "aint" :
+			# 	tokenTree.append({"type":"comparator","value":"NE"})
+			# 	i+=5
+			# 	nextWord = getNextWord(line,i)
 			
-			nextWord = getNextWord(line, i)
-			
-			# comparison is
-			if nextWord == "is" :
-				i+=3
-				nextWord = getNextWord(line,i)
-				if nextWord == "not" :
-					tokenTree.append({"type":"comparator","value":"NE"})
-					i+=4
-					nextWord = getNextWord(line,i)
-				else :
-					tokenTree.append({"type":"comparator","value":"EQ"})
-			elif nextWord == "aint" :
-				tokenTree.append({"type":"comparator","value":"NE"})
-				i+=5
-				nextWord = getNextWord(line,i)
-			
-			tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
-			i=len(line)
+			# tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
+			# i=len(line)
 			
 			# TODO other comparisons
 			
@@ -411,7 +533,7 @@ def evaluate(expression, context):
 	return expression
 
 
-def doIt(comparisonExpression):
+def processConditionalExpression(comparisonExpression):
 	"""
 	Takes in a comparison and returns True or False
 	:param comparisonExpression: of the form {variable, comparison operator, {sub expression to evaluate}}
@@ -420,12 +542,18 @@ def doIt(comparisonExpression):
 	op = comparisonExpression[1]["value"]
 	comptarget = evaluate(comparisonExpression[2], context)[0]
 	# reminder evaluate returns (value, 'type'), maybe wasn't such a good idea
-	if op == "EQ":
-		if comped == comptarget :
-			return True
-	elif op == "NE":
-		if comped != comptarget :
-			return True
+	# if op == "EQ":
+	# 	if comped == comptarget :
+	# 		return True
+	# elif op == "NE":
+	# 	if comped != comptarget :
+	# 		return True
+	
+	if op not in conditional_operations:
+		raiseError('{} : unknown conditional operator'.format(op))
+	# admitedly only binary
+	return conditional_operations[op](comped, comptarget)
+
 	return False
 
 	
@@ -473,6 +601,10 @@ def processInstruction(instruction, context):
 	# I/O
 	if instruction[0]["value"] == "say" :
 		print(str(evaluate(instruction[1:], context)[0]))
+
+	if instruction[0]['value'] == 'stutter':
+		print(str(evaluate(instruction[1:], context)[0]), end=' ')
+
 	
 	# Variable assignment
 	
@@ -492,13 +624,13 @@ def processInstruction(instruction, context):
 	
 	# Conditionals
 	if instruction[0]["value"] == "If" :
-		if doIt(instruction[1:4]) :
+		if processConditionalExpression(instruction[1:4]) :
 			return processBlock(instruction[4], context)
 	# TODO else
 	
 	
 	if instruction[0]["value"] == "While" :
-		while doIt(instruction[1:4]) :
+		while processConditionalExpression(instruction[1:4]) :
 			r = processBlock(instruction[4], context)
 			if r == "break":
 				break
@@ -507,7 +639,7 @@ def processInstruction(instruction, context):
 			
 				
 	if instruction[0]["value"] == "Until" :
-		while not doIt(instruction[1:4]) :
+		while not processConditionalExpression(instruction[1:4]) :
 			r = processBlock(instruction[4],context)
 			if r == "break":
 				break
