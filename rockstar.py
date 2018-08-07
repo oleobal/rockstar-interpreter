@@ -89,6 +89,14 @@ def getNextVariable(line, index):
 		return ({"type":"variable", "value":varName}, index)
 		
 	# TODO proper variables
+	elif nextWord[0] != nextWord[0].lower():
+		varName = ""
+		while index < len(line) and nextWord[0] != nextWord[0].lower():
+			varName += nextWord+" "
+			index+=len(nextWord)+1
+			nextWord = getNextWord(line,index)
+		varName=varName[:-1] ; index-=1 # remove last space
+		return({"type": "variable", "value":varName},index)
 	
 	return None, index
 	
@@ -303,7 +311,6 @@ def tokenize(preProcessedLine):
 			tokenTree.append({"type":"pronoun", "value":"doesn't matter"})
 			i+=len(nextWord)
 			continue
-		
 		
 	return tokenTree
 
