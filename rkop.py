@@ -41,7 +41,7 @@ CONDITIONAL_OPS = {
 
 class TokenType:
 	ARITHMETIC_OP = 'arithmetic operator'
-	BOOLEAN_OP = 'comparator'
+	CONDITIONAL_OP = 'comparator'
 	OP = 'operator'
 	VAR = 'variable'
 	LITERAL = 'literal'
