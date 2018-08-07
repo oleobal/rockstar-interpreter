@@ -1,121 +1,67 @@
 # Runs a set of tests to quickly check we didn't break anything
 
-program = "python.exe"
-file = "rockstar.py"
-argLocation = "scripts/"
 
-stopOnError = False
-displayError = False
+import argparse
+argparser = argparse.ArgumentParser(description="Will execute .rock files that have a corresponding .expected-output files and compare their output to that.")
+argparser.add_argument('-s', '--stopOnError', action='store_true', help='stop on error', default=False)
+argparser.add_argument('-c', '--colors', action='store_true', help='use ANSI coloring markers in output', default=False)
+argparser.add_argument('-d', '--displayErrors', action='store_true', help='display errors as they happen', default=False)
+argparser.add_argument('-l', '--location', type=str, help='set where to look for scripts', default="scripts")
+argparser.add_argument('-p', '--program', type=str, help='set program to execute interpreter', default="python.exe")
+argparser.add_argument('-i', '--interpreter', type=str, help='set interpreter file', default="rockstar.py")
 
-arguments = [
+args = argparser.parse_args()
 
-{"file":"test.rock",
-"expectedOut":
-"""meaning your love
-3.14
-669.14
-True
-Jojo
-Arithmetic for rockstars
-Add 2 3
-5.0
-5.0
-Mul 2 3
-6.0
-Div 3 2
-1.5
-Sub 2 3
--1.0
-3.0"""},
 
-{"file":"test-proper-variables.rock",
-"expectedOut":
-"""28.0"""},
+from os import listdir
+files = listdir(args.location)
+targets = []
+for i in files :
+	if i[-5:] == ".rock":
+		name = i[:-5]
+		if (name+".expected-output") in files :
+			targets.append(name)
 
-{"file":"test-poetic-assign.rock",
-"expectedOut":
-"""447.0
-you are mine..come home and says you not worth it"""},
-
-{"file":"test-blocks.rock",
-"expectedOut":
-"""Hello
-Let is spend some time together
-Sweet Sixteen
-I love you
-8.0
-I love you
-7.0
-I love you
-6.0
-I love you
-5.0
-I love you
-4.0
-I love you
-3.0
-I love you
-2.0
-I love you
-1.0
-Goodbye"""},
-
-{"file":"test-blocks-2.rock",
-"expectedOut":
-"""439.0
-Hey Hey
-438.0
-Hey Hey
-437.0
-Hey Hey
-436.0
-Hey Hey
-435.0
-Hey Hey
-434.0
-Hey Hey
-433.0
-Hey Hey
-432.0
-Hey Hey
-431.0
-Hey Hey
-430.0
-Hey Hey
-429.0
-Hey Hey
-428.0
-Hey Hey
-427.0
-Hey Hey
-426.0
-Hey Hey
-405.0
-Hey Hey
-404.0
-Hey Hey
-403.0
-402.0
-Hey Hey
-401.0"""}
-]
+targets = sorted(targets)
 
 import subprocess
-for a in arguments :
-	result = subprocess.run([program, file, argLocation+a["file"]], stdout=subprocess.PIPE)
+
+if args.displayErrors:
+	err = None
+else:
+	err=subprocess.DEVNULL
+
+colorOK = ""
+colorERR= ""
+colorEND= ""
+if args.colors:
+	colorOK = "\033[92m"
+	colorERR= "\033[91m"
+	colorEND= "\033[0m"
+
+passed = 0
+for t in targets :
+	result = subprocess.run([args.program, args.interpreter, (args.location+"/"+t+".rock")], stdout=subprocess.PIPE, stderr=err)
 	out = result.stdout.decode('utf-8')
 	out = "\n".join(out.splitlines()) # windows, but this also removes empty lines FIXME
 	
-	if out == a["expectedOut"]:
-		print("OK ",a["file"])
+	with open(args.location+"/"+t+".expected-output", 'r') as f:
+		expectedOut = f.read()
+	
+	if out == expectedOut:
+		print(colorOK+"OK ",t, colorEND)
+		passed += 1
 	else:
-		print("ERR",a["file"])
-		if displayError:
+		print(colorERR+"ERR",t, colorEND)
+		if args.displayErrors:
 			print("Expected :")
-			print(repr(a["expectedOut"]))
+			print(repr(expectedOut))
 			print("Got :")
 			print(repr(out))
-		if stopOnError :
+		if args.stopOnError :
 			break
-			
-		
+
+if passed == len(targets):
+	print("ALL tests passed")
+else:
+	print("{0} / {1} tests passed".format(passed, len(targets)))
