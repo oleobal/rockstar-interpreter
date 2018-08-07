@@ -15,7 +15,10 @@ VERBOSE = 0
 
 def LOG(*args, sep=' '):
 	if VERBOSE:
-		print(*args, sep=sep)
+		if len(args) == 1:
+			pprint(args[0])
+		else:
+			print(*args, sep=sep)
 	#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
 
 class InputProgramError(Exception):
@@ -54,7 +57,7 @@ def parseBooleanExpression(line, i):
 			LOG('IS')
 		
 		elif nextWord in ['aint', 'wasnt', 'werent']:
-			is_nature.append('is not')
+			is_nature.extend(['is', 'not'])
 			LOG('IS NOT')
 
 		elif nextWord in ['not', 'no']:
@@ -106,6 +109,8 @@ def parseBooleanExpression(line, i):
 			break
 		
 		it += 1
+
+	LOG('isn', is_nature)
 
 	if not tokens and is_nature:
 		# figure out op of 'not is'
