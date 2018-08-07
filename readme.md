@@ -37,6 +37,13 @@ This is compared to the copy of the specification in this repository (`specifica
  - "inclusive" pronouns are present but not enabled. We are planning on an option to enable them.
  - Type handling is largely ignored, but this is also because there is no way to manipulate types in the language, so that is a moot point.
 
+### Spec Interpretations
+
+The specification can be woefully unclear as to what exactly some things mean or how they are supposed to behave. Here are assumptions made.
+
+ - Functions can only be defined at top level
+ - `break` and `continue` behave as in Python
+
 ### Venues for improvement
 
 We are trying to get feature complete as fast as possible, and then solve the issues uncovered along the way.
@@ -44,7 +51,8 @@ We are trying to get feature complete as fast as possible, and then solve the is
  - Error handling is poor, we should instead throw errors and handle them at the top level which would enable us to display line levels
  - Last named variable (for pronouns) is currently handled manually but a good way would be to have context be a "smart" object updating this field whenever a variable is requested of it (alternatively, make the tokenizer context-aware for this, and replace it on tokenization ?)
  - Numbers are just python floats, which might or might not correspond to the spec
-
+ - Many syntax errors are just ignored in the tokenizer, when they could be caught there and not later.
+ 
 ### License
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
