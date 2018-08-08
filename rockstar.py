@@ -136,9 +136,9 @@ def parseConditionalExpression(line, i):
 	var2, ind = getNextVariable(line, i)
 	if var2:
 		tokens.append(var2)
-
-	i += ind + 1	
-
+		i += ind + 1	
+	else:
+		tokens += [{"type":"expression", "value":tokenize(line[i:])}]
 	return [var1] + tokens, i
 
 def preProcessLine(line):
@@ -302,7 +302,8 @@ def tokenize(preProcessedLine):
 
 			expr_tokens, i = parseConditionalExpression(line, i)
 			tokenTree.extend(expr_tokens)
-	
+			# tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
+			
 			# var, ind = getNextVariable(line, i)
 			# if var == None:
 			# 	raiseError(line, "Invalid flow control")
@@ -601,8 +602,12 @@ def processBlock(block, context):
 	if type(block) is dict:
 		if block["type"] == "block" :
 			instructionList = block["value"]
+		else:
+			print('duh', type(block), block)
 	elif type(block) is list:
 		instructionList = block
+	else:
+		print(type(block))
 	
 	for i in instructionList:
 		r = processInstruction(i,context)

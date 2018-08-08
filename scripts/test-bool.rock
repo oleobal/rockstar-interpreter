@@ -20,8 +20,8 @@ If my head is more than my heart
 Say "is X than: Okay"
 Put my test plus 1 into my test
 
-If my arm is less than my head
-Say "is X than: Okay"
+If my arm is less than 5
+Say "is X than numeric literal: Okay"
 Put my test plus 1 into my test
 
 If my arm is as high as my heart
