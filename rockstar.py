@@ -306,6 +306,7 @@ def tokenize(preProcessedLine):
 			expr_tokens, i = parseConditionalExpression(line, i)
 			tokenTree.extend(expr_tokens)
 			
+			i=len(line)
 			continue
 		
 		# loop control
@@ -588,7 +589,7 @@ def processInstruction(instruction, context):
 		print(str(evaluate(instruction[1:], context)[0]), end=' ')
 
 	# function declaration
-	if instruction[1]["type"] == "function declaration":
+	if len(instruction) >= 3 and instruction[1]["type"] == "function declaration":
 		# let's allow redefinition
 		# TODO add a warning once we have something that allows warnings
 		checkDefinitionValidity(instruction[0]["value"],"function",context)
