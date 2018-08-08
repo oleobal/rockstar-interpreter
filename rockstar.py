@@ -192,8 +192,8 @@ def getNextWord(text, index):
 def getNextVariable(line, index):
 	"""
 	Utility function
-	If there is a variable at <index> in <line>, it returns it (in dict form), along with the new index
-	else, it returns None and the same index
+	If there is a variable at <index> in <line>, it returns it (in dict form),
+	along with the new index. Else, it returns None and the same index
 	"""
 	nextWord = getNextWord(line, index)
 	if nextWord == None:
@@ -236,7 +236,8 @@ def tokenize(preProcessedLine):
 		newToken = {"type":"none", "value":None}
 		nextWord = getNextWord(line, i)
 		if nextWord == None:
-			break # my suspicion is that it is the sign of a  bigger problem, but oh well
+			break
+		# my suspicion is that it is the sign of a  bigger problem, but oh well
 		
 		# separator
 		try:
@@ -357,6 +358,14 @@ def tokenize(preProcessedLine):
 			i = len(line)
 			continue
 		
+		# function return
+		if line[i:9] == "Give back" :
+			tokenTree.append({"type":"function return", "value":"function return"})
+			i+=10
+			tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
+			i = len(line)
+			continue
+		
 		# assignment
 		
 		if nextWord == "Put" :
@@ -427,7 +436,7 @@ def tokenize(preProcessedLine):
 				raiseError(line, "Invalid poetic string assignment")
 		
 			
-		# treat all keywords before variables so the only thing left is variables
+		# treat all keywords before variables so they're the only thing left
 		
 		
 		# common variable
@@ -440,10 +449,12 @@ def tokenize(preProcessedLine):
 		
 		
 		# pronouns
-		# Making fun of SJWs is fun, right ? right ? right ? Should I put more inclusive pronouns in guys ? SJWs are so dumb right ?
-		# Actually, fuck the spec. Fuck these jokes. Fuck people who think humour is just references marking your
-		# belonging to a group. Fuck pervasive conservatism. Fuck militant apathy. Fuck Dylan Beattie.
-		# If you want your program that uses those to compile, then edit this yourself.
+		# Making fun of SJWs is fun, right ? right ? right ? Should I put more
+		# inclusive pronouns in guys ? SJWs are so dumb right ?
+		# Actually, fuck the spec. Fuck these jokes. Fuck people who think
+		# humour is just references marking your belonging to a group.
+		# Fuck pervasive conservatism. Fuck militant apathy. Fuck Dylan Beattie.
+		# If you want your program that uses those to compile, edit this.
 		#if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them", "ze", "hir", "zie", "zir", "xe", "xem", "ve", "ver"):
 		if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them"):
 			tokenTree.append({"type":"pronoun", "value":"doesn't matter"})
@@ -534,6 +545,23 @@ def evaluate(expression, context):
 	return expression
 
 
+def checkDefinitionValidity(name, type, context):
+	"""
+	Checks that it is valid to define something with this name and type
+	Will throw an exception if it's not quite right
+	:param name: the name of the new thing
+	:param type: its type ("variable" or "function")
+	:param context: the context to loop up
+	"""
+	# this is outside spec.. but sensible.
+	if type == "variable":
+		if name in context["functions"]:
+			raiseError(name, "Variable name already attributed to function")
+	if type == "function":
+		if name in context["variables"]:
+			raiseError(name,"Function name already attributed to variable")
+	
+	
 def processConditionalExpression(comparisonExpression):
 	"""
 	Takes in a comparison and returns True or False
@@ -582,7 +610,7 @@ def processBlock(block, context):
 			break
 	
 	return r
-	
+
 def processInstruction(instruction, context):
 	"""
 	Execute instruction
@@ -606,12 +634,19 @@ def processInstruction(instruction, context):
 	if instruction[0]['value'] == 'stutter':
 		print(str(evaluate(instruction[1:], context)[0]), end=' ')
 
+	# function declaration
+	if instruction[1]["type"] == "function declaration":
+		# let's allow redefinition
+		# TODO add a warning once we have something that allows warnings
+		checkDefinitionValidity(instruction[0]["value"],"function",context)
+		context["functions"][instruction[0]["value"]] = instruction
 	
 	# Variable assignment
 	
 	if instruction[0]["value"] == "assignment put" :
 		# it should go instruction : (0) put (1) expression (2) into (3) variable
 		v, t = evaluate(instruction[1], context)
+		checkDefinitionValidity(v,"variable",context)
 		context["variables"][instruction[3]["value"]] = {"value" : v, "type" : t}	
 		context["last named variable"] = instruction[3]["value"]
 		LOG('CONTEXT:', context)
@@ -619,6 +654,7 @@ def processInstruction(instruction, context):
 	
 	# Poetic assignment
 	if instruction[0]["type"] == "variable" and instruction[1]["value"] == "poetic assignment" :
+		checkDefinitionValidity(instruction[0]["value"],"variable",context)
 		context["variables"][instruction[0]["value"]] = {"type" : instruction[2]["type"], "value":instruction[2]["value"]}
 		context["last named variable"] = instruction[0]["value"]
 		# already handled in the tokenizer
@@ -646,8 +682,8 @@ def processInstruction(instruction, context):
 				break
 			if r == "continue":
 				continue
-			
-
+	
+		
 	
 	# loop control
 	

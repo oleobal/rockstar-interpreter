@@ -1,0 +1,8 @@
+Multiplication takes NumberOne and NumberTwo
+Put 0 into Counter
+Put 0 into Result
+While Counter is not NumberTwo
+Put Result plus NumberOne into Result
+
+Give back Result
+
