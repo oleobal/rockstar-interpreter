@@ -7,7 +7,7 @@ import traceback
 
 import rockstar as rk
 
-def run_shell():
+def run_shell(displayAST=False):
     """
     The main function for the shell. You can write rockstar code
     line by line. You can also examine the context and the variables.
@@ -45,6 +45,10 @@ def run_shell():
         if user_input.lower() == 'exit':
             break
 
+        if user_input.lower() == 'ast':
+            displayAST=True
+			#TODO make use of it
+			
         if user_input.lower() == 'context':
             print(context)
             continue

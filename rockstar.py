@@ -5,6 +5,7 @@ import pdb
 import pprint as prettyprint
 
 def pprint(o):
+	print()
 	prettyprint.pprint(o)
 	print()
 
@@ -720,7 +721,7 @@ def processTextBlock(line, iterator, context):
 	return instruction
 
 
-def processProgram(line, iterator, context):
+def processProgram(line, iterator, context, displayAST=False):
 	"""
 	This reads lines from whatever wrapper it has been given and executes
 	each instruction it finds.
@@ -731,6 +732,7 @@ def processProgram(line, iterator, context):
 	:param line: first line of the program
 	:param iterator: the line iterator over the input code
 	:param context: the program context
+	:param displayAST: (optional, False) display the AST before execution
 	"""
 	# discard leading empty lines
 	# I had this problem while processing text
@@ -754,6 +756,8 @@ def processProgram(line, iterator, context):
 			line = next(iterator, "")
 			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
 		
+		if displayAST:
+			pprint(instruction)
 		
 		processInstruction(instruction,context)
 		
@@ -766,6 +770,7 @@ if __name__ == '__main__':
 	argparser = argparse.ArgumentParser(description="Interpreter for the Rockstar programming language.")
 	argparser.add_argument('filepath', nargs='?', help='path to the file to interpret')
 	argparser.add_argument('-v', '--verbose', action='store_true', help='show detailed debug messages')
+	argparser.add_argument('-t', '--displayAST', action='store_true', help='Display the AST before executing each instruction.', default=False)
 	
 	args = argparser.parse_args()
 	
@@ -779,8 +784,8 @@ if __name__ == '__main__':
 	if args.filepath:
 		# reading input file from argument
 		with open(args.filepath) as f:
-			processProgram(f.readline(), f, context)
+			processProgram(f.readline(), f, context, displayAST=args.displayAST)
 
 	else:
 		# fire up the rockstar shell
-		rkshell.run_shell()
+		rkshell.run_shell(displayAST=args.displayAST)

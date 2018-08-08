@@ -3,12 +3,12 @@
 
 import argparse
 argparser = argparse.ArgumentParser(description="Will execute .rock files that have a corresponding .expected-output files and compare their output to that.")
-argparser.add_argument('-s', '--stopOnError', action='store_true', help='stop on error', default=False)
-argparser.add_argument('-c', '--colors', action='store_true', help='use ANSI coloring markers in output', default=False)
-argparser.add_argument('-d', '--displayErrors', action='store_true', help='display errors as they happen', default=False)
-argparser.add_argument('-l', '--location', type=str, help='set where to look for scripts', default="scripts")
-argparser.add_argument('-p', '--program', type=str, help='set program to execute interpreter', default="python.exe")
-argparser.add_argument('-i', '--interpreter', type=str, help='set interpreter file', default="rockstar.py")
+argparser.add_argument('-s', '--stopOnError',   action='store_true', help='stop on error',                       default=False)
+argparser.add_argument('-c', '--colors',        action='store_true', help='use ANSI coloring markers in output', default=False)
+argparser.add_argument('-d', '--displayErrors', action='store_true', help='display errors as they happen',       default=False)
+argparser.add_argument('-l', '--location',      type=str,            help='set where to look for scripts',       default="scripts")
+argparser.add_argument('-p', '--program',       type=str,            help='set program to execute interpreter',  default="python.exe")
+argparser.add_argument('-i', '--interpreter',   type=str,            help='set interpreter file',                default="rockstar.py")
 
 args = argparser.parse_args()
 
