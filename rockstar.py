@@ -4,15 +4,16 @@ import argparse
 import pdb
 import pprint as prettyprint
 
+from rkop import *
+import rkshell
+
+VERBOSE = 0
+
 def pprint(o):
 	print()
 	prettyprint.pprint(o)
 	print()
 
-from rkop import *
-import rkshell
-
-VERBOSE = 0
 
 def LOG(*args, sep=' '):
 	if VERBOSE:
@@ -20,13 +21,15 @@ def LOG(*args, sep=' '):
 			pprint(args[0])
 		else:
 			print(*args, sep=sep)
-	#open('log.log', 'a+').write(sep.join(map(str, args)) + '\n')
+
 
 class InputProgramError(Exception):
 	pass
 
+
 def raiseError(line, text):
 	raise InputProgramError("Line : "+str(line)+"\nError : "+str(text))
+
 
 def parseConditionalExpression(line, i):
 
@@ -141,6 +144,7 @@ def parseConditionalExpression(line, i):
 		tokens += [{"type":"expression", "value":tokenize(line[i:])}]
 	return [var1] + tokens, i
 
+
 def preProcessLine(line):
 	"""
 	Formatting to be done line per line, purely on text
@@ -222,6 +226,7 @@ def getNextVariable(line, index):
 	
 	return None, index
 	
+
 def tokenize(preProcessedLine):
 	"""
 	Separates a line into a token tree
@@ -279,9 +284,8 @@ def tokenize(preProcessedLine):
 			i+=len(nextWord)
 			continue
 		
-		
 		# operations
-		
+
 		if nextWord in ("Say", "Shout", "Whisper", "Scream"):
 			tokenTree.append({"type":"operator", "value":"say"})
 			i+=len(nextWord)
@@ -294,7 +298,6 @@ def tokenize(preProcessedLine):
 			continue
 		
 		# flow control
-		
 		global FLOW_CONTROL_OPS
 		if nextWord in FLOW_CONTROL_OPS :
 			tokenTree.append({"type":"flow control", "value":nextWord})
@@ -302,41 +305,11 @@ def tokenize(preProcessedLine):
 
 			expr_tokens, i = parseConditionalExpression(line, i)
 			tokenTree.extend(expr_tokens)
-			# tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
-			
-			# var, ind = getNextVariable(line, i)
-			# if var == None:
-			# 	raiseError(line, "Invalid flow control")
-			# tokenTree.append(var)
-			# i=ind+1
-
-			# nextWord = getNextWord(line, i)
-			
-			# # comparison is
-			# if nextWord == "is" :
-			# 	i+=3
-			# 	nextWord = getNextWord(line,i)
-			# 	if nextWord == "not" :
-			# 		tokenTree.append({"type":"comparator","value":"NE"})
-			# 		i+=4
-			# 		nextWord = getNextWord(line,i)
-			# 	else :
-			# 		tokenTree.append({"type":"comparator","value":"EQ"})
-			# elif nextWord == "aint" :
-			# 	tokenTree.append({"type":"comparator","value":"NE"})
-			# 	i+=5
-			# 	nextWord = getNextWord(line,i)
-			
-			# tokenTree.append({"type":"expression", "value":tokenize(line[i:])})
-			# i=len(line)
-			
-			# TODO other comparisons
 			
 			continue
 		
 		# loop control
 		# TODO errors if misused, but honestly whatev
-		
 		if line[i:].find("Break it down") == 0 or nextWord == "break" :
 			tokenTree.append({"type":"loop control", "value":"break"})
 			i=len(line)
@@ -347,7 +320,6 @@ def tokenize(preProcessedLine):
 			continue
 		
 		# function declaration
-		
 		if nextWord == "takes" :
 			if tokenTree[-1]["type"] != "variable" :
 				raiseError(line, "Incorrect function declaration") # TODO should be more rigorous
@@ -368,7 +340,6 @@ def tokenize(preProcessedLine):
 			continue
 		
 		# assignment
-		
 		if nextWord == "Put" :
 			tokenTree.append({"type":"operator", "value":"assignment put"})
 			i+=4
@@ -435,19 +406,14 @@ def tokenize(preProcessedLine):
 				i=len(line)
 			else:
 				raiseError(line, "Invalid poetic string assignment")
-		
 			
 		# treat all keywords before variables so they're the only thing left
 		
-		
 		# common variable
-		
 		var, ind = getNextVariable(line, i)
 		if var != None:
 			tokenTree.append(var)
 			i=ind
-		
-		
 		
 		# pronouns
 		# Making fun of SJWs is fun, right ? right ? right ? Should I put more
@@ -456,7 +422,6 @@ def tokenize(preProcessedLine):
 		# humour is just references marking your belonging to a group.
 		# Fuck pervasive conservatism. Fuck militant apathy. Fuck Dylan Beattie.
 		# If you want your program that uses those to compile, edit this.
-		#if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them", "ze", "hir", "zie", "zir", "xe", "xem", "ve", "ver"):
 		if nextWord.lower() in ("it", "he", "she", "him", "her", "they", "them"):
 			tokenTree.append({"type":"pronoun", "value":"doesn't matter"})
 			i+=len(nextWord)
@@ -464,12 +429,14 @@ def tokenize(preProcessedLine):
 		
 	return tokenTree
 
+
 def guessTypeOf(thing):
 	"""
 	Guess what the type of the thing (variable) is
 	"""
 	return "mysterious"
 	# TODO
+
 
 def evaluate(expression, context):
 	# FIXME maybe evaluate should return an expression instead ? Not sure
@@ -498,35 +465,23 @@ def evaluate(expression, context):
 		
 		if len(resultingExpr) == 1:
 			rexpr = resultingExpr[0]
-			
-			
+					
 		# arithmetic
 		
 		# Right associative operators
-		
 		elif resultingExpr[1]["type"] == TokenType.ARITHMETIC_OP:
 			# assuming it's a binary operator
 			left = resultingExpr[0]
 			right = evaluate(resultingExpr[2:],context)
-			rexpr = (arithmetic_operations[resultingExpr[1]['value']](left[0], right[0]), left[1])
-				
-				
+			rexpr = (arithmetic_operations[resultingExpr[1]['value']](left[0], right[0]), left[1])	
 	
 	elif expression["type"] == "expression" :
 		rexpr = evaluate(expression["value"], context)
-	
-
-	# TODO arithmetic, recursive expressions, etc
-	#elif expression['type'] == TokenType.ARITHMETIC_OP: # +plus, *times, -minus, /over
-	#	pass
-	
 	
 	else:
 		# Literals
 		if expression["type"] in ("string", "number", "boolean")  :
 			rexpr = (expression["value"], expression["type"])
-		
-		
 		
 		if expression["type"] == "variable" :
 			rexpr = (context["variables"][expression["value"]]["value"], context["variables"][expression["value"]]["type"])
@@ -572,12 +527,6 @@ def processConditionalExpression(comparisonExpression):
 	op = comparisonExpression[1]["value"]
 	comptarget = evaluate(comparisonExpression[2], context)[0]
 	# reminder evaluate returns (value, 'type'), maybe wasn't such a good idea
-	# if op == "EQ":
-	# 	if comped == comptarget :
-	# 		return True
-	# elif op == "NE":
-	# 	if comped != comptarget :
-	# 		return True
 	
 	if op not in conditional_operations:
 		raiseError('{} : unknown conditional operator'.format(op))
@@ -598,14 +547,10 @@ def processBlock(block, context):
 	:param context: the context
 	:param returns: None, or a string containing a command if it needs to
 	"""
-
-	instructionLine = None
 	
 	if type(block) is dict:
 		if block["type"] == "block" :
 			instructionList = block["value"]
-		else:
-			print('duh', type(block), block)
 	elif type(block) is list:
 		instructionList = block
 	else:
@@ -617,6 +562,7 @@ def processBlock(block, context):
 			break
 	
 	return r
+
 
 def processInstruction(instruction, context):
 	"""
@@ -633,11 +579,11 @@ def processInstruction(instruction, context):
 		if instruction["type"] == "block" :
 			return processBlock(instruction, context)
 	
-	
 	# I/O
 	if instruction[0]["value"] == "say" :
 		print(str(evaluate(instruction[1:], context)[0]))
 
+	# Print without a new line
 	if instruction[0]['value'] == 'stutter':
 		print(str(evaluate(instruction[1:], context)[0]), end=' ')
 
@@ -649,7 +595,6 @@ def processInstruction(instruction, context):
 		context["functions"][instruction[0]["value"]] = instruction
 	
 	# Variable assignment
-	
 	if instruction[0]["value"] == "assignment put" :
 		# it should go instruction : (0) put (1) expression (2) into (3) variable
 		v, t = evaluate(instruction[1], context)
@@ -680,7 +625,6 @@ def processInstruction(instruction, context):
 				break
 			if r == "continue":
 				continue
-			
 				
 	if instruction[0]["value"] == "Until" :
 		while not processConditionalExpression(instruction[1:4]) :
@@ -689,8 +633,6 @@ def processInstruction(instruction, context):
 				break
 			if r == "continue":
 				continue
-	
-		
 	
 	# loop control
 	
@@ -704,6 +646,7 @@ def processInstruction(instruction, context):
 	
 	return None
 	
+
 def processTextBlock(line, iterator, context):
 	"""
 	This works like processProgram, but instead of executing each instruction
@@ -781,7 +724,6 @@ def processProgram(line, iterator, context, displayAST=False):
 	# I had this problem while processing text
 	while not line.strip():
 		line = next(iterator, "")
-	
 
 	while line != "":
 		line = preProcessLine(line)
@@ -797,6 +739,7 @@ def processProgram(line, iterator, context, displayAST=False):
 		# let us assume functions can only be declared at top level
 		if instruction[0]["value"] in FLOW_CONTROL_OPS or instruction[1]["type"] == "function declaration":
 			line = next(iterator, "")
+			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
 		
 		if displayAST:
 			pprint(instruction)
@@ -804,7 +747,6 @@ def processProgram(line, iterator, context, displayAST=False):
 		processInstruction(instruction,context)
 		
 		line = next(iterator, "")
-	
 	
 
 if __name__ == '__main__':
