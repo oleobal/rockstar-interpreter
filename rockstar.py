@@ -598,6 +598,8 @@ def processBlock(block, context):
 	:param context: the context
 	:param returns: None, or a string containing a command if it needs to
 	"""
+
+	instructionLine = None
 	
 	if type(block) is dict:
 		if block["type"] == "block" :
@@ -795,7 +797,6 @@ def processProgram(line, iterator, context, displayAST=False):
 		# let us assume functions can only be declared at top level
 		if instruction[0]["value"] in FLOW_CONTROL_OPS or instruction[1]["type"] == "function declaration":
 			line = next(iterator, "")
-			instruction.append({"type":"block", "value":processTextBlock(line, iterator, context)})
 		
 		if displayAST:
 			pprint(instruction)
