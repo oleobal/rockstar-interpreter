@@ -21,8 +21,6 @@ Then, it is sent to `processInstruction`, which executes the instruction, making
 
 The exception is for blocks, which are sent (as text) to `processLineBlock` instead, basically a recursive version of `processProgram`. Blocks are only executed once they are finished.
 
-If it is a multiline instruction (block), we block (ha) after the tokenization, growing the AST until we reached root level again, at which point the AST is executed.
-
 
 ### Non-conformities
 
@@ -42,7 +40,9 @@ This is compared to the copy of the specification in this repository (`specifica
 The specification can be woefully unclear as to what exactly some things mean or how they are supposed to behave. Here are assumptions made.
 
  - Functions can only be defined at top level
+ - Functions can not be defined if the identifier already is a variable, and vice versa
  - `break` and `continue` behave as in Python
+ - commas `,` are puzzling in the spec.
 
 ### Venues for improvement
 

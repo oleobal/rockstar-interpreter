@@ -154,8 +154,8 @@ def preProcessLine(line):
 	# removing single quotes
 	line = re.sub(r"'s\W+", " is ", line)
 	line.replace("'", "")
-	# removing non alphabetical characters (save for . " and numbers)
-	line = re.sub(r"[^a-zA-Z0-9.\" ]+", "", line)
+	# removing non alphabetical characters (save for . , " and numbers)
+	line = re.sub(r"[^a-zA-Z0-9.,\" ]+", "", line)
 	# FIXME this is actually wrong because we'll also be removing them from string literals
 	# and it's not as simple as avoiding what is inside "", because of poetic string literals
 	# and also poetic things can contain keywords
@@ -648,6 +648,22 @@ def processInstruction(instruction, context):
 	return None
 	
 
+def getNewContext(name, super):
+	"""
+	Utility function that returns a neat new context
+	:param name: its name
+	:param super: the parent context
+	"""
+	context = {}
+	context["variables"] = {}
+	context["last named variable"] = None
+	context["functions"] = {}
+	# for call stack
+	context["name"] = name
+	context["super"] = super 
+	
+	return context
+
 def processTextBlock(line, iterator, context):
 	"""
 	This works like processProgram, but instead of executing each instruction
@@ -718,13 +734,14 @@ def processProgram(line, iterator, context, displayAST=False):
 	
 	:param line: first line of the program
 	:param iterator: the line iterator over the input code
-	:param context: the program context
 	:param displayAST: (optional, False) display the AST before execution
 	"""
 	# discard leading empty lines
 	# I had this problem while processing text
 	while not line.strip():
 		line = next(iterator, "")
+	
+
 
 	while line != "":
 		line = preProcessLine(line)
@@ -761,11 +778,8 @@ if __name__ == '__main__':
 	
 	VERBOSE = args.verbose
 
-	context = {}
-	context["variables"] = {}
-	context["last named variable"] = None
-	context["functions"] = {}
-
+	context = getNewContext("Main", None)
+	
 	if args.filepath:
 		# reading input file from argument
 		with open(args.filepath) as f:
