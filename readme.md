@@ -23,13 +23,13 @@ The exception is for blocks, which are sent (as text) to `processLineBlock` inst
 
 ### Non-conformities
 
-This is compared to the copy of the specification in this repository (`specification.md`), not the official one; this is just to avoid chasing a moving target. We are, of course, planning on making this list empty.
+This is compared to the copy of the specification in this repository (`specification.md`), not the official one; this is just to avoid chasing a moving target. We are, of course, planning on making this list empty. Also check the issues page for known bugs/invalidities which are unintentional but still distance us from the specification.
 
  - Arithmetic is not fully functional yet (only simple cases, priorities not implemented)
  - Comparison is not fully functional yet
  - Listening to `stdin` is not implemented (printing to `stdout` is)
  - Else blocks are not implemented
- - Functions only take literals and variables as arguments, due to unclear syntax priority (infrastructure for better is in place)
+ - Functions only take literals and variables as arguments, due to unclear syntax priority
  - Text preprocessing is crude, and in particular targets even what is inside `""` quotes, which means string literals can get changed by the preprocessor (single quotes, for instance, are removed). The problem here is that to identify string literals means we have to already largely tokenize everything, to identify what is a string literal, because of poetic string literals.
  - "inclusive" pronouns are present but not enabled. We are planning on an option to enable them.
  - Type handling is largely ignored, but this is also because there is no way to manipulate types in the language, so that is a moot point.
