@@ -324,6 +324,7 @@ def tokenize(preProcessedLine):
 		if nextWord == "takes" :
 			if tokenTree[-1]["type"] != "variable" :
 				raiseError(line, "Incorrect function declaration") # TODO should be more rigorous
+			tokenTree[-1]["type"] = "function"
 			tokenTree.append({"type":"function declaration", "value":"function declaration"})
 			i+=len(nextWord)+1
 			arguments = line[i:].split(" and ")
@@ -331,6 +332,50 @@ def tokenize(preProcessedLine):
 			tokenTree.append({"type":"function argument list","value":arguments})
 			i = len(line)
 			continue
+		
+		# function call
+		if nextWord == "taking" :
+			# appends a token "function call"
+			# it has a list 
+			if tokenTree[-1]["type"] != "variable" :
+				raiseError(line, "Incorrect function declaration") # TODO should be more rigorous
+			tokenTree[-1]["type"] = "function"
+			funcTok = tokenTree.pop()
+			
+			i+=7
+			# FIXME for now functions only take variables and literals
+			# because there's no clear guideline on where boundaries expression
+			# are; that is to say, how to distinguish between :
+			# > (Multiply taking my heart, my love) is nothing
+			# and
+			# > Multiply taking my heart, (my love is nothing)
+			# ?
+			# Both are valid expressions.. Rockstar has no mean of indicating
+			# priority, apparently by design.
+			restOfLine = line[i:].split(",")
+			# We separate on "," and trim whitespace afterwards, but that's
+			# just our interpretation of the spec
+			arguments = []
+			for l in restOfLine :
+				
+				a = tokenize(l.strip())
+				arguments.append(a[0])
+				if len(a)>1:
+					# FIXME bullshit method
+					if a["type"] == "variable":
+						i+=len(getNextVariable(line,i)[0]["value"])+1
+					elif a["type"] == "number":
+						i+=len(getNextWord(line,i))+1
+					elif a["type"] == "string":
+						i=line[i+1:].find("\"")
+					break
+				else:
+					i+=len(l)+1
+			
+			tokenTree.append({"type":"function call", "value":(funcTok, {"type":"function call argument list", "value":arguments})})
+			
+			continue
+		
 		
 		# function return
 		if line[i:9] == "Give back" :
@@ -454,7 +499,12 @@ def evaluate(expression, context):
 
 	rexpr = None
 	
-	if type(expression) is tuple :
+	if type(expression) is str :
+		rexpr =  (expression, "string")
+	elif type(expression) is int or type(expression) is float : #FIXME many others
+		rexpr =  (expression, "number")
+	
+	elif type(expression) is tuple :
 		rexpr = expression
 	
 	elif type(expression) is list:
@@ -478,6 +528,9 @@ def evaluate(expression, context):
 	
 	elif expression["type"] == "expression" :
 		rexpr = evaluate(expression["value"], context)
+	
+	elif expression["type"] == "function call" :
+		return executeFunction(expression["value"][0]["value"], expression["value"][1]["value"], context)
 	
 	else:
 		# Literals
@@ -519,7 +572,7 @@ def checkDefinitionValidity(name, type, context):
 			raiseError(name,"Function name already attributed to variable")
 	
 	
-def processConditionalExpression(comparisonExpression):
+def processConditionalExpression(comparisonExpression, context):
 	"""
 	Takes in a comparison and returns True or False
 	:param comparisonExpression: of the form {variable, comparison operator, {sub expression to evaluate}}
@@ -536,10 +589,52 @@ def processConditionalExpression(comparisonExpression):
 
 	return False
 
-	
-def processBlock(block, context):
+
+def executeFunction(name, arguments, context):
 	"""
-	Processes blocks, either as "block" expressions or as lists of instructions
+	Creates a new context, and executes the given function with that new context
+	
+	:param name: function name
+	:param arguments: list of arguments
+	:param context: the context to which the new function will be attached
+	:returns: the function return value, or None
+	"""
+	
+	# build new context
+	newContext = getNewContext(name, context)
+	
+	function = context["functions"][name]
+	funcArgNames = function[2]["value"]
+	
+	newContextName = name+"("
+	a = 0
+	for a in range(len(arguments)):
+		newContext["variables"][funcArgNames[a]] = {}
+		
+		newContext["variables"][funcArgNames[a]]["value"], newContext["variables"][funcArgNames[a]]["type"] = evaluate(arguments[a], context)
+		
+		newContextName+=funcArgNames[a] + str(newContext["variables"][funcArgNames[a]])+","
+	newContext["name"] = newContextName[:-1] + ")"
+	
+	newContext["functions"] = context["functions"]
+	
+	
+	# execute function
+	instructionList = function[3]["value"]
+	for i in instructionList:
+		if i[0]["type"] == "function return" :
+			if len(i) == 1:
+				return None
+			else:
+				return evaluate(i[1:], newContext)
+		else:
+			processInstruction(i, newContext)
+	
+	return None
+
+def processLoop(block, context):
+	"""
+	Processes loops, either as "block" expressions or as lists of instructions
 	Contains logic for processing return values (breaks/continues)
 	When one of the instructions in the block returns a command, execution
 	stops there and that value is returned.
@@ -614,14 +709,14 @@ def processInstruction(instruction, context):
 	
 	# Conditionals
 	if instruction[0]["value"] == "If" :
-		if processConditionalExpression(instruction[1:4]) :
-			return processBlock(instruction[4], context)
+		if processConditionalExpression(instruction[1:4], context) :
+			return processLoop(instruction[4], context)
 	# TODO else
 	
 	
 	if instruction[0]["value"] == "While" :
-		while processConditionalExpression(instruction[1:4]) :
-			r = processBlock(instruction[4], context)
+		while processConditionalExpression(instruction[1:4], context) :
+			r = processLoop(instruction[4], context)
 			if r == "break":
 				break
 			if r == "continue":
@@ -629,7 +724,7 @@ def processInstruction(instruction, context):
 				
 	if instruction[0]["value"] == "Until" :
 		while not processConditionalExpression(instruction[1:4]) :
-			r = processBlock(instruction[4],context)
+			r = processLoop(instruction[4],context)
 			if r == "break":
 				break
 			if r == "continue":

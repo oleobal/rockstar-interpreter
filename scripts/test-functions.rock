@@ -3,6 +3,13 @@ Put 0 into Counter
 Put 0 into Result
 While Counter is not NumberTwo
 Put Result plus NumberOne into Result
+Put Counter plus 1 into Counter
 
 Give back Result
 
+Addition takes my life and your love
+Put my life plus your love into Result
+Give back Result
+
+Say Addition taking 1, 2
+Say Multiplication taking 3, 5
