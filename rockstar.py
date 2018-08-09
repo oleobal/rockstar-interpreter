@@ -530,7 +530,7 @@ def evaluate(expression, context):
 		rexpr = evaluate(expression["value"], context)
 	
 	elif expression["type"] == "function call" :
-		return executeFunction(expression["value"][0]["value"], expression["value"][1]["value"], context)
+		rexpr =  executeFunction(expression["value"][0]["value"], expression["value"][1]["value"], context)
 	
 	else:
 		# Literals
@@ -618,21 +618,16 @@ def executeFunction(name, arguments, context):
 	
 	newContext["functions"] = context["functions"]
 	
-	
 	# execute function
 	instructionList = function[3]["value"]
-	for i in instructionList:
-		if i[0]["type"] == "function return" :
-			if len(i) == 1:
-				return None
-			else:
-				return evaluate(i[1:], newContext)
-		else:
-			processInstruction(i, newContext)
+	r = processBlock(instructionList, newContext)
+	
+	if r != None and r["type"] == "return" :
+		return r["value"]
 	
 	return None
 
-def processLoop(block, context):
+def processBlock(block, context):
 	"""
 	Processes loops, either as "block" expressions or as lists of instructions
 	Contains logic for processing return values (breaks/continues)
@@ -653,9 +648,13 @@ def processLoop(block, context):
 		print(type(block))
 	
 	for i in instructionList:
+		
 		r = processInstruction(i,context)
-		if r in ("break", "continue"):
-			break
+		if r is not None:
+			if r["type"] in ("break", "continue"):
+				break
+			elif r["type"] == "return":
+				return r
 	
 	return r
 
@@ -710,25 +709,31 @@ def processInstruction(instruction, context):
 	# Conditionals
 	if instruction[0]["value"] == "If" :
 		if processConditionalExpression(instruction[1:4], context) :
-			return processLoop(instruction[4], context)
+			return processBlock(instruction[4], context)
 	# TODO else
 	
 	
 	if instruction[0]["value"] == "While" :
 		while processConditionalExpression(instruction[1:4], context) :
-			r = processLoop(instruction[4], context)
-			if r == "break":
-				break
-			if r == "continue":
-				continue
+			r = processBlock(instruction[4], context)
+			if r != None:
+				if r["type"] == "break":
+					break
+				if r["type"] == "continue":
+					continue
+				if r["type"] == "return" :
+					return r
 				
 	if instruction[0]["value"] == "Until" :
 		while not processConditionalExpression(instruction[1:4]) :
-			r = processLoop(instruction[4],context)
-			if r == "break":
-				break
-			if r == "continue":
-				continue
+			r = processBlock(instruction[4],context)
+			if r != None:
+				if r["type"] == "break":
+					break
+				if r["type"] == "continue":
+					continue
+				if r["type"] == "return" :
+					return r
 	
 	# loop control
 	
@@ -738,7 +743,15 @@ def processInstruction(instruction, context):
 	# so let's do as in python
 	
 	if instruction[0]["type"] == "loop control" :
-		return instruction[0]["value"]
+		return {"type":instruction[0]["value"],"value":instruction[0]["value"]}
+		# FIXME this dumbass tuple system
+	# return value
+	if instruction[0]["type"] == "function return" :
+		if len(instruction) == 1 :
+			return None
+		else:
+			r = evaluate(instruction[1:], context)
+			return {"type":"return","value":r}
 	
 	return None
 	
@@ -873,12 +886,12 @@ if __name__ == '__main__':
 	
 	VERBOSE = args.verbose
 
-	context = getNewContext("Main", None)
+	mainContext = getNewContext("Main", None)
 	
 	if args.filepath:
 		# reading input file from argument
 		with open(args.filepath) as f:
-			processProgram(f.readline(), f, context, displayAST=args.displayAST)
+			processProgram(f.readline(), f, mainContext, displayAST=args.displayAST)
 
 	else:
 		# fire up the rockstar shell

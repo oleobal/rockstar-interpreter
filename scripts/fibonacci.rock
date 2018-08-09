@@ -1,0 +1,26 @@
+(Now for a bit of recursion..)
+(Takes a number and returns the Fibonacci number with that index)
+Fibonacci takes Index
+If Index is 0
+Give back 0
+
+If Index is 1
+Give back 1
+
+Put Index minus 1 into Aa
+Put Index minus 2 into Bb
+Put Fibonacci taking Aa into Aa
+Put Fibonacci taking Bb into Bb
+Give back Aa plus Bb
+
+(Give back Fibonacci taking Aa plus Fibonacci taking Bb)
+(Doesn't work)
+
+
+Say Fibonacci taking 0
+Say Fibonacci taking 1
+Say Fibonacci taking 2
+Say Fibonacci taking 3
+Say Fibonacci taking 5
+Say Fibonacci taking 10
+Say Fibonacci taking 15
