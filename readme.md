@@ -19,18 +19,17 @@ Each line is fed to the `tokenize` function, which returns a crude AST.
 
 Then, it is sent to `processInstruction`, which executes the instruction, making use of the `evaluate` function to reduce expressions and get variable values. Each reads or writes to a single context.
 
-The exception is for blocks, which are sent (as text) to `processLineBlock` instead, basically a recursive version of `processProgram`. Blocks are only executed once they are finished.
-
+The exception is for blocks, which are sent (as text) to `processLineBlock` instead, basically a recursive version of `processProgram`. Blocks are only executed once they are finished. Functions are similar yet a bit special, since they also need context switching (we have a proper call stack and everything).
 
 ### Non-conformities
 
 This is compared to the copy of the specification in this repository (`specification.md`), not the official one; this is just to avoid chasing a moving target. We are, of course, planning on making this list empty.
 
- - Arithmetic is not fully functional yet
+ - Arithmetic is not fully functional yet (only simple cases, priorities not implemented)
  - Comparison is not fully functional yet
  - Listening to `stdin` is not implemented (printing to `stdout` is)
  - Else blocks are not implemented
- - Functions are not implemented
+ - Functions only take literals and variables as arguments, due to unclear syntax priority (infrastructure for better is in place)
  - Text preprocessing is crude, and in particular targets even what is inside `""` quotes, which means string literals can get changed by the preprocessor (single quotes, for instance, are removed). The problem here is that to identify string literals means we have to already largely tokenize everything, to identify what is a string literal, because of poetic string literals.
  - "inclusive" pronouns are present but not enabled. We are planning on an option to enable them.
  - Type handling is largely ignored, but this is also because there is no way to manipulate types in the language, so that is a moot point.
@@ -42,13 +41,13 @@ The specification can be woefully unclear as to what exactly some things mean or
  - Functions can only be defined at top level
  - Functions can not be defined if the identifier already is a variable, and vice versa
  - `break` and `continue` behave as in Python
- - commas `,` are puzzling in the spec.
+ - commas `,` are puzzling in the spec. We only use them for function calls, which I hope is all they are good for. Used elsewhere, they'll break everything.
 
 ### Venues for improvement
 
 We are trying to get feature complete as fast as possible, and then solve the issues uncovered along the way.
 
- - Error handling is poor, we should instead throw errors and handle them at the top level which would enable us to display line levels
+ - Error handling is poor, we should instead throw errors and handle them at the top level which would enable us to display line numbers and the call stack.
  - Last named variable (for pronouns) is currently handled manually but a good way would be to have context be a "smart" object updating this field whenever a variable is requested of it (alternatively, make the tokenizer context-aware for this, and replace it on tokenization ?)
  - Numbers are just python floats, which might or might not correspond to the spec
  - Many syntax errors are just ignored in the tokenizer, when they could be caught there and not later.
