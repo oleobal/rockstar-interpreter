@@ -385,6 +385,24 @@ def tokenize(preProcessedLine):
 			i = len(line)
 			continue
 		
+		
+		# increment / decrement
+		# returns a token with type: increment / decrement and value: {variable}
+		if nextWord == "Build" :
+			i+= 6
+			v, i = getNextVariable(line,i)
+			if v == None or getNextWord(line,i+1) != "up":
+				raiseError(line, "Improper increment")
+			i+=2
+			tokenTree.append({"type":"increment", "value":v})
+		if nextWord == "Knock" :
+			i+= 6
+			v, i = getNextVariable(line,i)
+			if v == None or getNextWord(line,i+1) != "down":
+				raiseError(line, "Improper decrement")
+			i+=4
+			tokenTree.append({"type":"decrement", "value":v})
+		
 		# assignment
 		if nextWord == "Put" :
 			tokenTree.append({"type":"operator", "value":"assignment put"})
@@ -706,6 +724,14 @@ def processInstruction(instruction, context):
 		context["last named variable"] = instruction[0]["value"]
 		# already handled in the tokenizer
 	
+	# increment/decrement
+	if instruction[0]["type"] == "increment" :
+		context["variables"][instruction[0]["value"]["value"]]["value"] = context["variables"][instruction[0]["value"]["value"]]["value"]+1
+		context["last named variable"] = instruction[0]["value"]["value"]
+	if instruction[0]["type"] == "decrement" :
+		context["variables"][instruction[0]["value"]["value"]]["value"] = context["variables"][instruction[0]["value"]["value"]]["value"]-1
+		context["last named variable"] = instruction[0]["value"]["value"]
+		
 	# Conditionals
 	if instruction[0]["value"] == "If" :
 		if processConditionalExpression(instruction[1:4], context) :
@@ -725,7 +751,7 @@ def processInstruction(instruction, context):
 					return r
 				
 	if instruction[0]["value"] == "Until" :
-		while not processConditionalExpression(instruction[1:4]) :
+		while not processConditionalExpression(instruction[1:4], context) :
 			r = processBlock(instruction[4],context)
 			if r != None:
 				if r["type"] == "break":
