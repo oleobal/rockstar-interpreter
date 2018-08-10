@@ -17,7 +17,7 @@ def run_shell(displayAST=False):
     You can use the arrows to navigate up to previous commands.
     Does not work across separate shell sessions.
     """
-    context = {'variables' : {}}
+    context = rk.getNewContext("Main", None)
 
     while True:
         
@@ -36,7 +36,7 @@ def run_shell(displayAST=False):
         if user_input[0] == '<':
             try:
                 with open(user_input[1:].strip()) as file:
-                    rk.processTextBlock(file.readline(), file, context, isTopLevelBlock=True)
+                    rk.processProgram(file.readline(), file, context, displayAST=False)
             except FileNotFoundError as e:
                 print(e)
             continue
@@ -76,6 +76,12 @@ def run_shell(displayAST=False):
         try:
             ans = rk.preProcessLine(user_input)
             if ans:
+                # FIXME see issue #5
+                # We need to be able to detect if an instruction is incomplete
+                # (missing into, unfinished expression, ...)
+                # for blocks, we could detect if the instruction is
+                # starting a block, and call processBlock in this case
+                # else process instruction as standalone
                 ans = rk.processInstruction(rk.tokenize(ans), context)
         except Exception as e:
             traceback.print_exc()
